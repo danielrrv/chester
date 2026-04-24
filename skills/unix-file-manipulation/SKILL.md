@@ -1,7 +1,6 @@
-```markdown
 ----
 name: unix-file-manipulation
-description: Skill for interacting with files and directories in a Unix-like environment. Encompasses creation, reading, modification, deletion, permission management, and searching, always prioritizing safety, idempotency, and best practices like temporal file usage. Trigger for any task involving direct manipulation of the filesystem. Do not trigger for database operations or complex application logic outside file I/O.
+description: Skill for interacting with files and directories in a Unix-like environment. Encompasses creation, reading, modification, deletion, permission management, and searching, always prioritizing safety, idempotency, and best practices like temporal file usage. Trigger for any task involving direct manipulation of the filesystem. Do not trigger for database operations or complex application logic outside file I/O. Use its commands and never user the skill name as binary
 license: MIT
 ----
 
@@ -36,6 +35,29 @@ license: MIT
     *   **Temporary Files**: Always use `mktemp` for creating temporary files and directories. Manage their lifecycle by ensuring deletion upon completion or failure.
     *   **Scripting**: Adhere to POSIX shell scripting best practices (`#!/bin/bash` or `#!/bin/sh`, `set -euo pipefail`).
 
+6. **Identation and file formatting**:
+    * For Python files(.py), use:
+
+    ```py
+    #To re-indent a block of messy Python code using the AST module, you can use the following pattern:
+    import ast
+    
+    # Messy input with inconsistent indentation
+    code = """
+    def my_function():
+      x = 10
+        y = 20
+      return x + y
+    """
+    
+    # Parse into an AST
+    tree = ast.parse(code)
+    
+    # Unparse back to clean, indented Python code
+    formatted_code = ast.unparse(tree)
+    print(formatted_code)
+
+    ``` 
 ## Core Workflows
 
 Each workflow must prioritize safety, error checking, and idempotency.
@@ -55,15 +77,15 @@ Each workflow must prioritize safety, error checking, and idempotency.
 ### 2. File Reading
 
 *   **Objective**: Retrieve content or metadata of files.
-*   **Atomic Steps**:
-    1.  **Check Existence**: `test -f "$FILE_PATH"`
-    2.  **Check Read Permissions**: `test -r "$FILE_PATH"`
+*   **Atomic Stepss**:
+    1.  **Check Existence**: `ls -f "$FILE_PATH"`
+    2.  **Check Read Permissions**: `ls -r "$FILE_PATH"`
     3.  **Read Content**:
         *   Full file: `cat "$FILE_PATH"`
         *   Head: `head -n "$N" "$FILE_PATH"`
         *   Tail: `tail -n "$N" "$FILE_PATH"`
-        *   Filtered: `grep "$PATTERN" "$FILE_PATH"`
-    4.  **Read Metadata**: `stat "$FILE_PATH"`, `ls -l "$FILE_PATH"`
+        <!-- *   Filtered: `grep "$PATTERN" "$FILE_PATH"` -->
+    <!-- 4.  **Read Metadata**: `stat "$FILE_PATH"`, `ls -l "$FILE_PATH"` -->
 
 ### 3. File Modification (CRITICAL: Use Temporal Files)
 
@@ -245,4 +267,3 @@ Before considering any `unix-file-manipulation` task complete, the agent *must* 
 *   **Resource Limits**: Be aware of potential resource limits (e.g., `ulimit -n` for open files) for operations involving many files.
 *   **Read `man` Pages**: For any utility, refer to its `man` page for the most accurate and comprehensive usage details and options.
 *   **Avoid Parsing `ls`**: Do not parse `ls` output in scripts, especially for file names. Use `find -print0 | xargs -0` or shell globs (`*`, `?`) instead.
-```

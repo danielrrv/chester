@@ -10,7 +10,7 @@ def extract_skill_header(file_path: str) -> Optional[str]:
     Lee un archivo Markdown de habilidades y extrae el bloque entre '---'.
     """
     try:
-        with open(file_path, 'r', encoding='utf-8') as f:
+        with open(file_path, 'r', errors='replace') as f:
             content = f.read()
             
             # Buscamos el contenido entre los dos primeros delimitadores '---'
@@ -19,6 +19,7 @@ def extract_skill_header(file_path: str) -> Optional[str]:
             
             if match:
                 return match.group(1).strip()
+            print("not header found")
             return None
             
     except FileNotFoundError:
@@ -37,6 +38,7 @@ def extract_skills_headers(skills_path):
     for folder in skill_folders:
         files = [f for f in folder.iterdir() if f.is_file() and f.name.endswith(".md")]
         for file in files:
+            print(os.path.join(skills_path, folder.name, file.name))
             loaded_skills += extract_skill_header(os.path.join(skills_path, folder.name, file.name))+"\n\n---\n\n" 
                 
     return loaded_skills

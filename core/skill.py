@@ -1,0 +1,1 @@
+class Skill: \n    def __init__(self, name, description):\n        self.name = name\n        self.description = description\n\n    def load(self):\n        # Logic to load the skill\n        pass\n\n    def execute(self, *args, **kwargs):\n        # Logic to execute the skills operation\n        pass\n

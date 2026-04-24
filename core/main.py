@@ -14,31 +14,6 @@ from .commands import execute_protected_command
 from .utils import extract_skills_headers, load_skill, write_skill_manifest
 
 
-def write_history_content(role, message) -> dict[any]:
-    return {"role": role, "parts": [{"text": message}]}
-
-
-def load_session(session_file):
-    if os.path.exists(session_file):
-        with open(session_file, 'r') as f:
-            session_data = json.load(f)
-        return session_data
-    return None
-
-
-def save_session(session_file, user_task, history: list, loaded_skills, learnings, system_prompt):
-    return
-    session_data = {
-        "user_task": user_task,
-        "history": history,
-        "loaded_skills": loaded_skills,
-        "learnings": learnings,
-        "system_prompt": system_prompt
-    }
-    with open(session_file, 'w') as f:
-        json.dump(session_data, f, indent=4)
-
-
 client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
 
@@ -59,32 +34,38 @@ def run_gemini_task(session: Session, user_task):
 
     max_turns = 30
     turn = 0
-    # return
-    # return
     while True:
         turn += 1
         print(f"\n--- TURN {turn} ---")
-
+        if turn > max_turns:
+            print("exhausted resource")
+            break
         current_parts = [genai.types.Part.from_text(text = session.last_message())]
         
         if len(base_skills) > 0:
             for skill in base_skills:
                 current_parts.append(genai.types.Part.from_text(text=f"NEW_SKILLS_LOADED:\n{skill}"))
-                
+        
         response = session.chat.send_message(message=current_parts)
            
         try:
+            user_response = ""
             clean_json = response.text.replace("```json", "").replace("```", "").strip()
             data = json.loads(clean_json)
-
-            print(f"Agent Thought:{data['thought']}")
-            session.update_history(role="model", message=data['thought'])
-            
-
             if data.get("is_complete"):
+                session.update_history(role="model", message=data["response_to_user"])
                 print("✅ Task Completed!")
                 break
+            else:
+                print(f"Agent Thought:{data['thought']}\n\n")
+                session.update_history(role="model", message=data['thought'])
 
+            if data['needs_user_information']:
+                user_response = input("model requests you:" + data['response_to_user'] +"\n. Your response:" if data['response_to_user'] else data['thought'])
+            
+            
+          
+            
             if data.get("approval"):
                 print(
                     f"Agent requires approval to proceed with the command:{json.dumps(data['command'], indent=4)}")
@@ -93,6 +74,20 @@ def run_gemini_task(session: Session, user_task):
                     print("Command disapproved by user. Exiting.")
                     return
 
+            print(json.dumps(data, indent=4))
+            print(data["needs_user_information"])
+            if not data["command"] and not (data["needs_user_information"]==True):
+                print("Not command presnet")
+                session.update_history(role="user", message="Incorrect json. the command was populated.")
+                continue
+            
+            result_output=""
+            if data["command"]:
+                print(f"Executing: {data['command']['binary']} {data['command']['args']}")
+                result_output = execute_protected_command(data['command'])
+                print(f"result_output: {result_output}")
+
+
             skills_to_load_content = ""
             if len(data["next_detected_skill_to_load"]):
                 for skill_name in data["next_detected_skill_to_load"]:
@@ -100,37 +95,21 @@ def run_gemini_task(session: Session, user_task):
                         skills_to_load_content += load_skill(os.path.join(
                             os.getcwd(), "skills"), skill_name) + "\n\n"
                         loaded_skills[skill_name] = True
-            if not data["command"] or data["command"]["binary"]:
-                print("Not command presnet")
-            print(
-                f"Executing: {data['command']['binary']} {data['command']['args']}")
-            result_output = execute_protected_command(data['command'])
-
-            print(f"result_output: {result_output}")
-            print(f"skills:{skills_to_load_content}")
-            learnings = data.get('learnings', {})
-            session.learnings.update(data.get('learnings', {}))
+                        
+            
+            print(f"skills-loaded:{skills_to_load_content}")
+            learnings = data['learnings']
+            
+            # session.learnings.update(data.get('learnings', {}))
           
 
             next_agent_input_parts = [
                 f"Continue with the task:",
-                f"OUTPUT:{result_output}",
+                f"OUTPUT:{ user_response if user_response else result_output}",
                 f"NEXT_SUBTASK:{data['next_subtask']}",
                 f"LEARNINGS:{json.dumps(learnings)}",
                 f"SKILLS:{skills_to_load_content}"
             ]
-
-            # user_feedback = input(
-            #     "Your turn (press Enter to continue, 'exit' to quit, or type a message for the agent): ")
-            # if user_feedback.lower() == 'exit':
-            #     print("Exiting interactive session.")
-            #     save_session(session_file, user_task, history, loaded_skills,
-            #                  learnings, system_instruction_from_session)
-            #     break
-
-            # if user_feedback:
-            #     next_agent_input_parts.append(
-            #         f"USER_FEEDBACK: {user_feedback}")
             session.update_history(role="user", message="\n".join(next_agent_input_parts))
         
                 
@@ -142,13 +121,15 @@ def run_gemini_task(session: Session, user_task):
 
             if turn >= max_turns:
                 print("Max turns reached due to JSON errors. Exiting.")
-               
                 break
         except Exception as e:
+            print(e)
             print(f"Error:{e}")
-            session.update(role="user", message=e)
+            session.update_history(role="user", message=str(e))
+            raise
             break
-
+        
+    return session.last_message()
 
 
 def generate_skill(skill_name, metadata):
@@ -160,7 +141,9 @@ def generate_skill(skill_name, metadata):
 
 
 if __name__ == "__main__":
+  
     parser = argparse.ArgumentParser(description="Autonomous Architect CLI")
+    
     subparsers = parser.add_subparsers(
         dest="command", help="Available commands")
 
@@ -182,6 +165,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
+    
     if args.command == "run-task":
         session = Session.find_or_create(is_new=True, session_id=None)
         run_gemini_task(session=session, user_task=args.user_task)
@@ -189,7 +173,13 @@ if __name__ == "__main__":
         metadata_dict = json.loads(args.metadata)
         generate_skill(args.skill_name, metadata_dict)
     else:
-        parser.print_help()
+        # parser.print_help()
+        session = Session.find_or_create(is_new=True, session_id=None)
+        while True:
+            user_task = input("Architect> ")
+            thought = run_gemini_task(session=session, user_task=user_task)
+            print(f"Model:{thought}")
+        
 # if __name__ == "__main__":
 #     session:Session = Session.find_or_create(is_new=True, session_id=None)
 #     session.persist()

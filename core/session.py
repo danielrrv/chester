@@ -68,9 +68,6 @@ class Session:
         return asdict(self)
 
     def last_message(self) ->str:
-        # part = types.Part(text="Hello")
-        # print(part.model_dump())
-        print("Last message:" + self.history[-1].parts[0].model_dump()['text'])
         return self.history[-1].parts[0].model_dump()['text']
     def persist(self) -> None:
         try:
