@@ -5,11 +5,13 @@ import json
 from google import genai
 from google.genai import types
 
-import logging
-from agents import architect, skill_creator
-from commands import execute_protected_command
+
+
+from core.session import Session
+from .agents import architect, skill_creator
+from .commands import execute_protected_command
 # from utils import  load_skill, write_skill_manifest, extract_skills_header
-from utils import extract_skills_headers, load_skill, write_skill_manifest
+from .utils import extract_skills_headers, load_skill, write_skill_manifest
 
 
 def write_history_content(role, message) -> dict[any]:
@@ -40,50 +42,21 @@ def save_session(session_file, user_task, history: list, loaded_skills, learning
 client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
 
-def run_gemini_task(session_file, user_task=None):
-    session_data = load_session(session_file)
-    if session_data:
-        print(f"Loaded session from {session_file}")
-        user_task = session_data["user_task"]
-        history = session_data["history"]
-        loaded_skills = session_data["loaded_skills"]
-        learnings = session_data["learnings"]
-        system_instruction_from_session = session_data["system_prompt"]
-        base_skills_initial = "\n\n---".join([load_skill(os.path.join(
-            os.getcwd(), "skills"), s) for s in loaded_skills.keys()])
-
-        chat = client.chats.create(
-            model="gemini-2.5-flash",
-            config={"system_instruction": system_instruction_from_session},
-            history=[history[-1]]
-        )
-    else:
-        print("Starting new session.")
-        if not user_task:
-            print("Error: user_task is required for a new session.")
-            return
-        SYSTEM_PROMPT = architect(user_task=user_task, base_skills=extract_skills_headers(
-            os.path.join("skills")), absolute_path=os.path.join("skills"))
-        history = []
-        loaded_skills = {'unix-file-manipulation': True}
-        learnings = {}
-
-        base_skills_initial = "\n\n---".join([load_skill(os.path.join(
-            os.getcwd(), "skills"), s) for s in loaded_skills.keys()])
-
-        chat = client.chats.create(
-            model="gemini-2.5-flash",
-            config={"system_instruction": SYSTEM_PROMPT, "response_mime_type":"application/json"},
-            history=history
-        )
-        system_instruction_from_session = SYSTEM_PROMPT
-
+def run_gemini_task(session: Session, user_task):
+    SYSTEM_PROMPT = architect(user_task=user_task, 
+                              base_skills= extract_skills_headers(os.path.join("skills")), 
+                              absolute_path=os.path.join("skills"))
     
+    session.create_chat(client=client, system_instructions=SYSTEM_PROMPT, model="gemini-2.5-flash")
     
-    initial_input_to_agent = f"USER_TASK: {user_task}"
-    history.append(write_history_content(role="user", message=initial_input_to_agent))
+    loaded_skills = {'unix-file-manipulation': True}
+    
+    base_skills = [load_skill(os.path.join(os.getcwd(), "skills"), s) for s in loaded_skills.keys()]
+    
+    session.update_history(role="user", message=f"USER_TASK: {user_task}")
+    
+ 
 
-    print(initial_input_to_agent)
     max_turns = 30
     turn = 0
     # return
@@ -92,29 +65,24 @@ def run_gemini_task(session_file, user_task=None):
         turn += 1
         print(f"\n--- TURN {turn} ---")
 
-        if history:
-            response = chat.send_message(message=[
-                genai.types.Part(text=history[-1]['parts'][0]['text']),
-                genai.types.Part.from_bytes(data=bytes(base_skills_initial, encoding='utf-8'), mime_type="text/markdown")
-            ])
-            
-        else:
-            print("Error: No initial message in history for chat.send_message.")
-            break
-
+        current_parts = [genai.types.Part.from_text(text = session.last_message())]
+        
+        if len(base_skills) > 0:
+            for skill in base_skills:
+                current_parts.append(genai.types.Part.from_text(text=f"NEW_SKILLS_LOADED:\n{skill}"))
+                
+        response = session.chat.send_message(message=current_parts)
+           
         try:
             clean_json = response.text.replace("```json", "").replace("```", "").strip()
             data = json.loads(clean_json)
 
             print(f"Agent Thought:{data['thought']}")
-            history.append(write_history_content(
-                role="model", message=data['thought']))
+            session.update_history(role="model", message=data['thought'])
+            
 
             if data.get("is_complete"):
                 print("✅ Task Completed!")
-                
-                save_session(session_file, user_task, history, loaded_skills,
-                             learnings, system_instruction_from_session)
                 break
 
             if data.get("approval"):
@@ -123,8 +91,6 @@ def run_gemini_task(session_file, user_task=None):
                 user_approval = input("Approve command? (yes/no): ")
                 if user_approval.lower() != 'yes':
                     print("Command disapproved by user. Exiting.")
-                    save_session(session_file, user_task, history, loaded_skills,
-                                 learnings, system_instruction_from_session)
                     return
 
             skills_to_load_content = ""
@@ -142,8 +108,9 @@ def run_gemini_task(session_file, user_task=None):
 
             print(f"result_output: {result_output}")
             print(f"skills:{skills_to_load_content}")
-
-            learnings.update(data.get('learnings', {}))
+            learnings = data.get('learnings', {})
+            session.learnings.update(data.get('learnings', {}))
+          
 
             next_agent_input_parts = [
                 f"Continue with the task:",
@@ -153,36 +120,33 @@ def run_gemini_task(session_file, user_task=None):
                 f"SKILLS:{skills_to_load_content}"
             ]
 
-            user_feedback = input(
-                "Your turn (press Enter to continue, 'exit' to quit, or type a message for the agent): ")
-            if user_feedback.lower() == 'exit':
-                print("Exiting interactive session.")
-                save_session(session_file, user_task, history, loaded_skills,
-                             learnings, system_instruction_from_session)
-                break
+            # user_feedback = input(
+            #     "Your turn (press Enter to continue, 'exit' to quit, or type a message for the agent): ")
+            # if user_feedback.lower() == 'exit':
+            #     print("Exiting interactive session.")
+            #     save_session(session_file, user_task, history, loaded_skills,
+            #                  learnings, system_instruction_from_session)
+            #     break
 
-            if user_feedback:
-                next_agent_input_parts.append(
-                    f"USER_FEEDBACK: {user_feedback}")
-
-            history.append(write_history_content(
-                role="user", message="\n".join(next_agent_input_parts)))
+            # if user_feedback:
+            #     next_agent_input_parts.append(
+            #         f"USER_FEEDBACK: {user_feedback}")
+            session.update_history(role="user", message="\n".join(next_agent_input_parts))
+        
+                
   
         except json.JSONDecodeError:
             print("Error: Agent failed to provide valid JSON. Requesting retry...")
-            history.append(write_history_content(
-                role="user", message="Error: Your last response was not valid JSON. Please repeat using the strict JSON schema."))
+            session.update_history(
+                role="user", message="Error: Your last response was not valid JSON. Please repeat using the strict JSON schema.")
 
             if turn >= max_turns:
                 print("Max turns reached due to JSON errors. Exiting.")
-                save_session(session_file, user_task, history, loaded_skills,
-                             learnings, system_instruction_from_session)
+               
                 break
         except Exception as e:
             print(f"Error:{e}")
-            history.append(write_history_content(role="user", message=e))
-            save_session(session_file, user_task, history, loaded_skills,
-                     learnings, system_instruction_from_session)
+            session.update(role="user", message=e)
             break
 
 
@@ -219,9 +183,16 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.command == "run-task":
-        run_gemini_task(args.session_file, args.user_task)
+        session = Session.find_or_create(is_new=True, session_id=None)
+        run_gemini_task(session=session, user_task=args.user_task)
     elif args.command == "generate-skill":
         metadata_dict = json.loads(args.metadata)
         generate_skill(args.skill_name, metadata_dict)
     else:
         parser.print_help()
+# if __name__ == "__main__":
+#     session:Session = Session.find_or_create(is_new=True, session_id=None)
+#     session.persist()
+   
+
+

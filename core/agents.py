@@ -40,7 +40,7 @@ Here are the knowledge base:
     {"step": 1, "description": "Phase description", "status": "COMPLETED/IN_PROGRESS/PENDING"}
   ],
   "environment": {
-        "current_working_directory": "/mnt/workspace/...",
+        "current_working_directory": "{absolute_path}",
         "files_created": ["list_of_files"]
   },
   "command": {
