@@ -46,6 +46,10 @@ def load_skill(skills_path, skill_name):
     try:
          with open(os.path.join(skills_path, skill_name, "SKILL.md"), 'r', encoding='utf-8') as f:
             content = f.read()
+            match = re.search(r'^---\s*(.*?)\s*---', content, re.DOTALL | re.MULTILINE)
+            
+            if match:
+                return content[match.end() + 1:]
             return content
     except FileNotFoundError:
         print(f"Error: El archivo {skills_path}/{skill_name}/SKILL.md no existe.")
