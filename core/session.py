@@ -28,11 +28,21 @@ class HistoryEnconder(json.JSONEncoder):
         if isinstance(obj, History):
             return [obj.as_list()]
         if isinstance(obj, Session):
-            return [{"id": (obj.id), "title": (obj.title), "user_task": (obj.user_task), "history": (obj.history), "summary": (obj.summary), "skill_names": (obj.skill_names), "created_at": (obj.created_at)}]
+            return [{
+                "id": (obj.id), 
+                "title": (obj.title), 
+                "user_task": (obj.user_task), 
+                "history": (obj.history), 
+                "summary": (obj.summary), 
+                "skill_names": (obj.skill_names), 
+                "token_tracker":obj.token_tracker,
+                "created_at": (obj.created_at)}]
         if isinstance(obj, types.Content):
             return [{"role": obj.role, "parts": obj.parts}]
         if isinstance(obj, types.Part):
             return [{"text": obj.text}]
+        if isinstance(obj, TokenTracker):
+            return [{"total_candidates":obj.total_candidates, "total_prompt":obj.total_prompt}]
         else:
             return super().default(obj)
 

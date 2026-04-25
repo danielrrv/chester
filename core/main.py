@@ -88,7 +88,7 @@ def run_gemini_task(session: Session, user_task):
                 print(f"Executing: {data['command']['binary']} {data['command']['args']}")
                 result_output = execute_protected_command(data['command'])
                 print(f'result_output: {result_output}')
-            if len(data['next_detected_skill_to_load']):
+            if data['next_detected_skill_to_load'] and len(data['next_detected_skill_to_load'])>0:
                 for skill_name in data['next_detected_skill_to_load']:
                     if skill_name not in loaded_skill_objects:
                         print(f'Agent requests loading new skill: {skill_name}')

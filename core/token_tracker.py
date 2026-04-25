@@ -5,11 +5,8 @@ token counts and estimates the associated costs based on the model used.
 """
 from dataclasses import dataclass, field
 from typing import Optional
-
 from google.genai import types
-
 from core.model import Model
-
 
 @dataclass
 class TokenTracker:
@@ -24,7 +21,6 @@ class TokenTracker:
     total_prompt: int = 0
     total_candidates: int = 0
     model: Model = field(default=Model.gemini_2_5_flash)
-    
 
     def update(self, metadata: Optional[types.GenerateContentResponseUsageMetadata]):
         """Updates the token counts based on the provided usage metadata.
@@ -44,11 +40,11 @@ class TokenTracker:
         The report includes total prompt tokens, total candidate tokens, and their
         respective and combined estimated costs.
         """
-        (input_cost, output_cost, total_cost) = self.calculate()
-        print(f"--- Session Usage ---")
-        print(f"Input: {self.total_prompt}, ${input_cost:.6f} | Output: {self.total_candidates}, ${output_cost:.6f}")
-        print(f"Total: {self.total_prompt + self.total_candidates}, ${total_cost:.6f}")
-    
+        input_cost, output_cost, total_cost = self.calculate()
+        print(f'--- Session Usage ---')
+        print(f'Input: {self.total_prompt}, ${input_cost:.6f} | Output: {self.total_candidates}, ${output_cost:.6f}')
+        print(f'Total: {self.total_prompt + self.total_candidates}, ${total_cost:.6f}')
+
     def set_model(self, model: Model) -> None:
         """Sets the language model for token tracking and cost calculation.
 
@@ -56,7 +52,7 @@ class TokenTracker:
             model (Model): The new language model to be used.
         """
         self.model = model
-        
+
     def calculate(self):
         """Calculates the estimated input, output, and total costs based on token usage.
 
@@ -64,6 +60,15 @@ class TokenTracker:
             tuple[float, float, float]: A tuple containing the input cost, output cost,
                                       and total cost, respectively.
         """
-        input_cost = (self.total_prompt / 1_000_000) * self.model.prices()["input"]
-        output_cost = (self.total_candidates / 1_000_000) * self.model.prices()["output"]
+        input_cost = self.total_prompt / 1000000 * self.model.prices().input
+        output_cost = self.total_candidates / 1000000 * self.model.prices().output
         return (input_cost, output_cost, input_cost + output_cost)
+
+    def to_dict(self) -> dict:
+        """Converts the TokenTracker instance to a dictionary for serialization."""
+        return {'total_prompt': self.total_prompt, 'total_candidates': self.total_candidates, 'model': self.model.value}
+
+    @classmethod
+    def from_dict(cls, data: dict):
+        """Reconstructs a TokenTracker instance from a dictionary."""
+        return cls(total_prompt=data['total_prompt'], total_candidates=data['total_candidates'], model=Model(data['model']))
