@@ -5,15 +5,22 @@ import os
 import json
 import uuid
 
+
+
 from datetime import datetime
 from dataclasses import dataclass, field, asdict
 from pathlib import Path
 from typing import Self
 from google.genai import chats, types, Client
 
+from core.model import Model
+from core.token_tracker import TokenTracker
+
 
 class SessionNotFound(Exception):
     pass
+
+
 
 
 class HistoryEnconder(json.JSONEncoder):
@@ -62,6 +69,7 @@ class Session:
     chat: chats.Chat = field
     skill_names: list[str] = field(default_factory=list)
     system_instructions: str = field(default="")
+    token_tracker: TokenTracker = field(default_factory= TokenTracker)
     created_at: str = field(default_factory=str)
 
     def as_dict(self) -> dict:
@@ -77,10 +85,11 @@ class Session:
         except Exception:
             raise
 
-    def create_chat(self, client: Client, system_instructions, model="gemini-2.5-flash"):
+    def create_chat(self, client: Client, system_instructions, model: Model):
         self.system_instructions = system_instructions
+        self.token_tracker.set_model(model=model)
         self.chat = client.chats.create(
-            model=model,
+            model=model.value,
             config={"system_instruction": system_instructions,
                     "response_mime_type": "application/json"},
             history=self.history.as_list()
