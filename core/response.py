@@ -5,6 +5,9 @@ from typing import Any, Dict, List, Optional
 from core.commands import AgentCommand, AgentCommandOutput
 
 
+class ChesterResponseException(Exception):
+    pass
+        
 @dataclass
 class AgentStep:
     step: int
@@ -64,8 +67,9 @@ class ChesterResponse:
                 is_complete=str(data.get("is_complete", "")).lower() == "true"
             )
             
-        except json.JSONDecodeError:
-            raise
+        except [json.JSONDecodeError, Exception]:
+            raise ChesterResponseException(f"Unparseable entity: {text}")
+
     
     
     @property   

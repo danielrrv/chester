@@ -73,6 +73,7 @@ class AgentCommand:
                     text=True
                 )
                 stdout, stderr = process.communicate(input = self.inline_script)
+                return AgentCommandOutput(stdout=stdout, stderr=stderr, is_safe=message )
             else:
                 # Execute standard binary + args
                 result = subprocess.run(
@@ -82,7 +83,7 @@ class AgentCommand:
                     timeout=30
                 )
                 stdout, stderr = result.stdout, result.stderr
-            return AgentCommandOutput(stdout=stdout, stderr=stderr, is_safe=message )
+                return AgentCommandOutput(stdout=stdout, stderr=stderr, is_safe=message )
         except Exception as e:
             raise CommandFailure
         
