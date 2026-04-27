@@ -70,8 +70,10 @@ class ChesterResponse:
                 usage_metadata = metadata['usage_metadata']
             )
             
-        except [json.JSONDecodeError, Exception]:
+        except json.JSONDecodeError:
             raise ChesterResponseException(f"Unparseable entity: {text}")
+        except Exception:
+            raise
 
     
     

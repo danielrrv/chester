@@ -85,5 +85,5 @@ class AgentCommand:
                 stdout, stderr = result.stdout, result.stderr
                 return AgentCommandOutput(stdout=stdout, stderr=stderr, is_safe=message )
         except Exception as e:
-            raise CommandFailure
+            raise CommandFailure(self)
         

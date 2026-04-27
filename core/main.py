@@ -121,9 +121,11 @@ def run_gemini_task(session: Session, client: LLMClient, user_task: str) -> str:
         # This ensures the model is aware of available tools for its reasoning process.
         # TODO: Abstract genai.types.Part for full LLM provider agnosticism.
         skills_to_load = [genai.types.Part.from_text(text=v.content) for _, v in request.skills.items() if not v.loaded]
+        #Add the skills to the last message in the conversation.
+        session.append_message_to_last_user_interaction(skills_to_load)
         # Combine the last message from the session history with any skills to be loaded as parts for the LLM.
-        request.parts = [genai.types.Part.from_text(text=session.last_message())] + skills_to_load
-
+        request.parts = session.last_message_parts()
+        
         try:
 
             # Parse the raw response text into a structured ChesterResponse object.
@@ -195,7 +197,7 @@ def run_gemini_task(session: Session, client: LLMClient, user_task: str) -> str:
             logger.exception('An unexpected error occurred during task execution:')
             session.update_history(role='user', message=f'Error: {str(e)}. Please try again or refine the task.')
 
-    return session.last_message()
+    return session.last_assistant_message()
 
 
 def generate_skill(client: LLMClient, skill_name: str, metadata: dict):
@@ -290,7 +292,7 @@ if __name__ == '__main__':
                     break
                 # For the interactive loop, we can default to Gemini, or add input for provider/model
                 # For now, default to Gemini
-                client = get_client(provider='gemini', model=Model.gemini_2_5_flash_lite) # Default LLM client for interactive mode.
+                client = get_client(provider='gemini', model=Model.gemini_2_5_flash) # Default LLM client for interactive mode.
                 thought = run_gemini_task(session=session, client=client, user_task=user_task)
                 logger.info(f'Model response: {thought}')
                 session.token_tracker.report()
