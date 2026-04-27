@@ -3,6 +3,7 @@ import json
 from typing import Any, Dict, List, Optional
 
 from core.commands import AgentCommand, AgentCommandOutput
+from core.token_tracker import UsageMetadata
 
 
 class ChesterResponseException(Exception):
@@ -35,11 +36,12 @@ class ChesterResponse:
     needs_user_information: bool = False
     needs_approval: bool = False
     is_complete: bool = False
+    usage_metadata:UsageMetadata = field(default_factory=lambda: UsageMetadata(0, 0))
     _user_response: str = field(init=False, default="")
     _command_result_output: Optional[AgentCommandOutput] = field(init=False, default_factory=AgentCommandOutput)
 
     @classmethod
-    def from_text(cls, text: str) -> Optional['ChesterResponse']:
+    def from_text(cls, text: str, metadata:Dict[str, Any]) -> Optional['ChesterResponse']:
         text = text.replace("```json", "").replace("```", "").strip()
         try:
 
@@ -64,7 +66,8 @@ class ChesterResponse:
                     data.get("needs_user_information", "")).lower() == "true",
                 needs_approval=str(data.get("needs_approval", "")
                                    ).lower() == "true",
-                is_complete=str(data.get("is_complete", "")).lower() == "true"
+                is_complete=str(data.get("is_complete", "")).lower() == "true",
+                usage_metadata = metadata['usage_metadata']
             )
             
         except [json.JSONDecodeError, Exception]:

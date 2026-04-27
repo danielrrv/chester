@@ -8,6 +8,13 @@ from typing import Optional
 from google.genai import types
 from core.model import Model
 
+
+@dataclass 
+class UsageMetadata:
+    total_input: int = 0
+    total_output:int  = 0
+
+
 @dataclass
 class TokenTracker:
     """Tracks token usage for language model interactions and calculates associated costs.
@@ -22,7 +29,7 @@ class TokenTracker:
     total_candidates: int = 0
     model: Model = field(default=Model.gemini_2_5_flash)
 
-    def update(self, metadata: Optional[types.GenerateContentResponseUsageMetadata]):
+    def update(self, metadata: UsageMetadata):
         """Updates the token counts based on the provided usage metadata.
 
         Args:
@@ -30,9 +37,11 @@ class TokenTracker:
                 Usage metadata containing prompt and candidate token counts from a
                 language model generation response.
         """
+        print(metadata)
+        print(self)
         if metadata:
-            self.total_prompt += metadata.prompt_token_count
-            self.total_candidates += metadata.candidates_token_count
+            self.total_prompt += metadata.total_input
+            self.total_candidates += metadata.total_output
 
     def report(self):
         """Prints a summary report of the session's token usage and estimated costs.
