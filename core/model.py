@@ -5,6 +5,11 @@ for various AI/ML services, specifically focusing on Gemini models.
 """
 from dataclasses import dataclass
 from enum import Enum
+from typing import TYPE_CHECKING
+
+# To avoid circular imports, use TYPE_CHECKING for type hints of LLMClient
+if TYPE_CHECKING:
+    from core.clients import LLMClient, GeminiClient, VertexAIClient
 
 
 @dataclass
@@ -22,10 +27,13 @@ class ModelPrice:
 # A dictionary mapping model names (strings) to their respective ModelPrice objects.
 # These prices are typically in USD per 1M tokens or similar units.
 PRICES: dict[str, ModelPrice] = {
+    "gemini-2.5-flash-lite": ModelPrice(input=0.10, output=2.5),
     # Gemini 2.0 Flash model pricing
-    "gemini-2.5-flash": ModelPrice(input=0.10, output=0.40), # Using ModelPrice dataclass for consistency
+    "gemini-2.5-flash": ModelPrice(input=0.10, output=2.5), # Using ModelPrice dataclass for consistency
     # Gemini 1.5 Pro model pricing
-    "gemini-2.5-pro": ModelPrice(input=1.25, output=5.00)
+    "gemini-2.5-pro": ModelPrice(input=1.25, output=5.00),
+    "gemini-1.5-pro": ModelPrice(input=1.25, output=5.00),
+    "gemini-1.5-flash-001": ModelPrice(input=0.10, output=2.5) # Vertex AI Gemini 1.5 Flash pricing (placeholder)
 }
 
 
@@ -35,6 +43,10 @@ class Model(Enum):
     Each enum member represents a specific model with a unique identifier.
     """
     gemini_2_5_flash = "gemini-2.5-flash"
+    gemini_2_5_flash_lite = "gemini-2.5-flash-lite"
+    gemini_2_5_pro = "gemini-2.5-pro"
+    gemini_1_5_pro = "gemini-1.5-pro"
+    gemini_1_5_flash_vertex = "gemini-1.5-flash-001" # New Vertex AI model
 
     def prices(self) -> ModelPrice | None:
         """Retrieves the pricing information for the current model.
@@ -44,3 +56,14 @@ class Model(Enum):
         """
         return PRICES.get(self.value)
 
+
+def get_llm_client(model: Model) -> 'LLMClient':
+    """Factory function to get the appropriate LLM client for a given model."""
+    from core.clients import GeminiClient, VertexAIClient # Import inside for factory function to avoid circular imports unless TYPE_CHECKING is used effectively
+
+    if model in [Model.gemini_2_5_flash, Model.gemini_2_5_flash_lite, Model.gemini_2_5_pro, Model.gemini_1_5_pro]:
+        return GeminiClient(model=model)
+    elif model == Model.gemini_1_5_flash_vertex:
+        return VertexAIClient(model=model)
+    else:
+        raise ValueError(f"Unsupported model: {model.name}")

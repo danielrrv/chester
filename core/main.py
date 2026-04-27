@@ -66,7 +66,7 @@ def get_client(provider: str, model: Model) -> LLMClient:
         ValueError: If an unsupported LLM provider is requested.
     """
     if provider.lower() == 'gemini':
-        return GeminiClient(model=Model.gemini_2_5_flash)
+        return GeminiClient(model = model)
     # TODO: Add more LLM providers here (e.g., elif provider.lower() == 'openai': return OpenAIClient(model_name=model))
     else:
         raise ValueError(f"Unsupported LLM provider: {provider}")
@@ -98,6 +98,7 @@ def run_gemini_task(session: Session, client: LLMClient, user_task: str) -> str:
         provider=client.model.value.split('-')[0], # Infer provider from model name for now
         model=client.model.value
     )
+    logger.info(f"Using provider:{request.provider} | model: {request.model}")
 
     # Create a new chat session with the LLM client and system instructions.
     # The model name is retrieved from the client itself.
@@ -289,7 +290,7 @@ if __name__ == '__main__':
                     break
                 # For the interactive loop, we can default to Gemini, or add input for provider/model
                 # For now, default to Gemini
-                client = get_client(provider='gemini', model=Model.gemini_2_5_flash) # Default LLM client for interactive mode.
+                client = get_client(provider='gemini', model=Model.gemini_2_5_flash_lite) # Default LLM client for interactive mode.
                 thought = run_gemini_task(session=session, client=client, user_task=user_task)
                 logger.info(f'Model response: {thought}')
                 session.token_tracker.report()

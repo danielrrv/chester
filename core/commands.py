@@ -80,7 +80,7 @@ class AgentCommand:
                     [self.binary] + self.args,
                     capture_output=True,
                     text=True,
-                    timeout=30
+                    timeout=60 * 2
                 )
                 stdout, stderr = result.stdout, result.stderr
                 return AgentCommandOutput(stdout=stdout, stderr=stderr, is_safe=message )

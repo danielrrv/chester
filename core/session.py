@@ -25,6 +25,7 @@ class HistoryEnconder(json.JSONEncoder):
         if isinstance(obj, Session):
             return [{
                 "id": (obj.id),
+                "system_instructions": obj.system_instructions,
                 "title": (obj.title),
                 "user_task": (obj.user_task),
                 "history": (obj.history),
@@ -119,8 +120,6 @@ class Session:
         # NOTE: `system_instructions` and `model` are stored but their direct usage for chat configuration
         # is now handled by the `LLMClient`'s `start_chat` method, which encapsulates LLM-specific details.
 
-    def send_message(self, messages: List[types.Part]):
-        self.chat
     @staticmethod
     def list_sessions() -> list[dict]: # Changed return type to list[dict] as it returns raw dicts
         session_dir = Path(os.path.join(os.getcwd(), ".sessions")) # Use current working directory
