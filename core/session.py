@@ -1,11 +1,6 @@
-
-
-
 import os
 import json
 import uuid
-
-
 
 from datetime import datetime
 from dataclasses import dataclass, field, asdict
@@ -22,7 +17,6 @@ class SessionNotFound(Exception):
 
 
 
-
 class HistoryEnconder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, History):
@@ -35,18 +29,18 @@ class HistoryEnconder(json.JSONEncoder):
                 "history": (obj.history), 
                 "summary": (obj.summary), 
                 "skill_names": (obj.skill_names), 
-                "token_tracker":obj.token_tracker,
-                "created_at": (obj.created_at)}]
+                "token_tracker": obj.token_tracker,
+                "created_at": (obj.created_at),
+                "learnings": (obj.learnings)
+            }]
         if isinstance(obj, types.Content):
             return [{"role": obj.role, "parts": obj.parts}]
         if isinstance(obj, types.Part):
             return [{"text": obj.text}]
         if isinstance(obj, TokenTracker):
-            return [{"total_candidates":obj.total_candidates, "total_prompt":obj.total_prompt}]
+            return [{"total_candidates": obj.total_candidates, "total_prompt": obj.total_prompt}]
         else:
             return super().default(obj)
-
-
 class History:
 
     history: list[types.ContentOrDict] = []
@@ -60,7 +54,7 @@ class History:
     def __iter__(self):
         return self.history
 
-    def __getitem__(self, key):
+    def __getitem__(self, key)->types.ContentOrDict:
         return self.history[key]
 
 
@@ -87,6 +81,7 @@ class Session:
 
     def last_message(self) ->str:
         return self.history[-1].parts[0].model_dump()['text']
+    
     def persist(self) -> None:
         try:
             filename = 'session_' + self.id + ".json"
@@ -123,29 +118,29 @@ class Session:
             role=role, parts=[types.Part(text=message)]))
         self.persist()
 
-    @staticmethod
-    def find_or_create(is_new: bool, session_id: int) -> Self:
+    @classmethod
+    def find_or_create(cls,is_new: bool, session_id: int) -> Self:
         if is_new:
             os.makedirs(os.path.join(
-                Session.pwd, Session.sessions_folders), exist_ok=True)
+                cls.pwd, cls.sessions_folders), exist_ok=True)
             id = str(uuid.uuid4())
             filename = 'session_' + id + ".json"
-            with open(os.path.join(Session.pwd, Session.sessions_folders, filename), 'w') as fs:
-                session = Session(id=id, created_at=str(datetime.now()))
+            with open(os.path.join(cls.pwd, cls.sessions_folders, filename), 'w') as fs:
+                session = cls(id=id, created_at=str(datetime.now()))
                 session.persist()
                 return session
 
         if session_id:
             try:
                 session_path = Path(os.path.join(
-                    Session.pwd, Session.sessions_folders, 'session_' + session_id + ".json"))
+                    cls.pwd, cls.sessions_folders, 'session_' + session_id + ".json"))
                 if not session_path.exists():
                     raise SessionNotFound
                 with open(session_path.as_uri(), 'r') as fs:
                     content = fs.read()
                     session = json.loads(content)
-                    return session
-            except [json.JSONDecodeError, SessionNotFound]:
+                    return cls(**session)
+            except (json.JSONDecodeError, SessionNotFound):
                 return Session.find_or_create(is_new=True)
             except Exception:
                 raise

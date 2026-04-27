@@ -1,44 +1,86 @@
+from dataclasses import dataclass, field
+import re
 import sys
 import os
 from pathlib import Path
+from typing import Optional
 from core.utils import load_skill
 
+
+@dataclass
 class Skill:
+    _SKILL_PATH = "skills"
+    _SKILL_FILE_NAME = "SKILL.md"
+    name:str = field(default_factory=str)
+    _headers:str = None
+    _content:str = None
+    loaded:bool = False
 
-    def __init__(self, name, description):
-        self.name = name
-        self.description = description
-        self.documentation = None
-        self.loaded_sub_skills_docs = {}
-
-    def load(self):
-        print(f'Loading skill: {self.name}')
-        skills_base_path = 'skills'
-        primary_skill_loaded = False
-        skill_content = load_skill(skills_base_path, self.name)
-        if skill_content:
-            self.documentation = skill_content
-            display_content = skill_content[:100].replace('\n', ' ').replace('\r', '')
-            print(f'   Successfully loaded content for {self.name} (first 100 chars): {display_content}...')
-            primary_skill_loaded = True
-        else:
-            print(f'   Failed to load documentation for primary skill: {self.name}')
-            return False
-        sub_skills_load_successful = True
-        if hasattr(self, 'next_detected_skill_to_load') and self.next_detected_skill_to_load:
-            print(f'Attempting to load {len(self.next_detected_skill_to_load)} detected sub-skills:')
-            for skill_slug in self.next_detected_skill_to_load:
-                sub_skill_doc = load_skill(skills_base_path, skill_slug)
-                if sub_skill_doc:
-                    self.loaded_sub_skills_docs[skill_slug] = sub_skill_doc
-                    display_content = sub_skill_doc[:100].replace('\n', ' ').replace('\r', '')
-                    print(f' - Successfully loaded documentation for sub-skill: {skill_slug} (first 100 chars): {display_content}...')
-                else:
-                    print(f' - Failed to load documentation for sub-skill: {skill_slug}')
-                    sub_skills_load_successful = False
-        else:
-            print('No next_detected_skill_to_load attribute found or it is empty.')
-        return primary_skill_loaded and sub_skills_load_successful
-
-    def execute(self, *args, **kwargs):
-        pass
+    @property
+    def headers(self)->Optional[str]:
+        
+        if self._headers:
+            return self._headers
+        try:
+            return self.load_header()
+        except FileNotFoundError:
+            raise
+    
+    @property
+    def content(self)->Optional[str]:
+        if self._content:
+            return self._content
+        try:
+            self.loaded = True
+            return self.load_content()
+        except FileNotFoundError:
+            raise
+    
+    @staticmethod
+    def all_headers()-> str:
+        loaded_skills = ""
+        skill_folders: list[Path]= [f for f in Path(os.path.join(Skill._SKILL_PATH)).iterdir() if f.is_dir()]    
+        for folder in skill_folders:
+            try:
+                loaded_skills += Skill(folder.stem).headers + "\n\n---\n\n" 
+            except FileNotFoundError:
+                continue
+        return loaded_skills
+    
+    
+    def load_header(self) -> Optional[str]:
+        try:
+            with open(os.path.join(Skill._SKILL_PATH, self.name, Skill._SKILL_FILE_NAME), 'r', ) as f:
+                content = f.read()
+                
+                match = re.search(r'^---\s*(.*?)\s*---', content, re.DOTALL | re.MULTILINE)
+                
+                if match:
+                    self._headers = match.group(1).strip()
+                    return self._headers
+                return None
+            
+        except FileNotFoundError:
+            print(f"The skill {self.name} doesn't exist")
+            raise
+        except Exception as e:
+            print(f"Unexpected error loading name and description for '{self.name}' skill: {e}")
+            return None
+        
+    
+    def load_content(self)->Optional[str]:
+        try:
+            with open(os.path.join(Skill._SKILL_PATH, self.name, Skill._SKILL_FILE_NAME), 'r', encoding='utf-8') as f:
+                content = f.read()
+                match = re.search(r'^---\s*(.*?)\s*---', content, re.DOTALL | re.MULTILINE)
+            
+                if match:
+                    self._content =  content[match.end() + 1: ]
+                    return self._content
+                return None
+        except FileNotFoundError:
+            print(f"Skill {self.name} doesn't exist")
+            return None
+        except Exception as e:
+            print(f"Unexpected error loading name and description for '{self.name}' skill: {e}")
+            return None
