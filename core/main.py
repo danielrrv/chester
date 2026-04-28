@@ -78,7 +78,7 @@ def get_client(provider: str, model: Model) -> LLMClient:
     else:
         raise ValueError(f"Unsupported LLM provider: {provider}")
 
-async def run_gemini_task(session: Session, client: LLMClient, mcp_manager: MCPManager, user_task: str) -> str:
+async def run_task(session: Session, client: LLMClient, mcp_manager: MCPManager, user_task: str) -> str:
     """
     Orchestrates the interaction with the LLM to execute a user task.
 
@@ -287,7 +287,7 @@ if __name__ == '__main__':
         logger.info(f'Starting run-task for user_task: {args.user_task} with provider: {args.llm_provider}, model: {args.llm_model}')
         # Dynamically instantiate the LLM client
         client = get_client(provider=args.llm_provider, model_name=args.llm_model)
-        run_gemini_task(session=session, client=client, user_task=args.user_task)
+        run_task(session=session, client=client, user_task=args.user_task)
         logger.info('Run-task completed.')
     elif args.command == 'generate-skill':
         # Handle the 'generate-skill' command: parse metadata and invoke skill generation.
@@ -312,7 +312,7 @@ if __name__ == '__main__':
                 client = get_client(provider='gemini', model=Model.gemini_2_5_flash) # Default LLM client for interactive mode.
                 mcp_server_config = StdioMCPServerConfiguration(config_json='config/mcp_servers.json')
                 mcp_manager= MCPManager(mcp_server_config)
-                thought = asyncio.run(run_gemini_task(session=session, client=client, mcp_manager=mcp_manager, user_task=user_task))
+                thought = asyncio.run(run_task(session=session, client=client, mcp_manager=mcp_manager, user_task=user_task))
                 logger.info(f'Model response: {thought}')
                 session.token_tracker.report()
             except KeyboardInterrupt:
