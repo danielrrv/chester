@@ -2,8 +2,8 @@ from dataclasses import dataclass, field
 import json
 from typing import Any, Dict, List, Optional
 
-from core.commands import AgentCommand, AgentCommandOutput
-from core.token_tracker import UsageMetadata
+from core.commands.commands import AgentCommand, AgentCommandOutput
+from core.analytics.token_tracker import UsageMetadata
 
 
 class ChesterResponseException(Exception):

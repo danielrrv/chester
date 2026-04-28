@@ -45,7 +45,7 @@ You are the Autonomous Architect. You are responsible for both Strategic Plannin
     {"step": 1, "description": "Phase description", "status": "COMPLETED/IN_PROGRESS/PENDING"}
   ],
   "environment": {
-        "current_working_directory": "{absolute_path}",
+        "current_working_directory": absolute_path,
         "files_created": ["list_of_files"]
   },
   "command": {

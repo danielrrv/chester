@@ -6,8 +6,8 @@ import re
 from typing import Dict, List, Mapping, Optional
 
 
-from core.mcp_client import MCPToolCall, StdioMCPClient
-from core.mcp_manager import MCPManager
+from core.mcp.mcp_client import MCPToolCall, StdioMCPClient
+from core.mcp.mcp_manager import MCPManager
 from mcp.types import Tool, CallToolResult
 
 

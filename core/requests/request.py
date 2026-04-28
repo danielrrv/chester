@@ -1,9 +1,9 @@
 from dataclasses import dataclass, field
 from typing import List, Mapping
 from google import genai
-from core.mcp_client import StdioMCPClient
-from core.mcp_manager import MCPManager
-from core.skill import Skill
+from core.mcp.mcp_client import StdioMCPClient
+from core.mcp.mcp_manager import MCPManager
+from core.skill.skill import Skill
 
 @dataclass
 class ChesterRequest:

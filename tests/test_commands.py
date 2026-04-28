@@ -2,7 +2,7 @@
 import unittest
 import subprocess
 from unittest.mock import patch, MagicMock
-from core.commands import SecurityGuard, execute_protected_command
+from core.commands.commands import SecurityGuard, execute_protected_command
 
 class TestSecurityGuard(unittest.TestCase):
 

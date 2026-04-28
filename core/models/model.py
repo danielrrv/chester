@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING
 
 # To avoid circular imports, use TYPE_CHECKING for type hints of LLMClient
 if TYPE_CHECKING:
-    from core.clients import LLMClient, GeminiClient, VertexAIClient
+    from core.clients.clients import LLMClient, GeminiClient, VertexAIClient
 
 
 @dataclass
@@ -59,7 +59,7 @@ class Model(Enum):
 
 def get_llm_client(model: Model) -> 'LLMClient':
     """Factory function to get the appropriate LLM client for a given model."""
-    from core.clients import GeminiClient, VertexAIClient # Import inside for factory function to avoid circular imports unless TYPE_CHECKING is used effectively
+    from core.clients.clients import GeminiClient, VertexAIClient # Import inside for factory function to avoid circular imports unless TYPE_CHECKING is used effectively
 
     if model in [Model.gemini_2_5_flash, Model.gemini_2_5_flash_lite, Model.gemini_2_5_pro, Model.gemini_1_5_pro]:
         return GeminiClient(model=model)

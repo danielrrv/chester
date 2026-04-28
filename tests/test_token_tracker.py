@@ -1,6 +1,6 @@
 import unittest
-from core.token_tracker import TokenTracker
-from core.model import Model
+from core.analytics.token_tracker import TokenTracker
+from core.models.model import Model
 
 class TestTokenTrackerSerialization(unittest.TestCase):
 

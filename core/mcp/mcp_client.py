@@ -1,4 +1,5 @@
 
+from datetime import datetime
 import os
 import json
 from typing import Any, Coroutine, Dict, List, Optional, Self, Union
@@ -6,7 +7,7 @@ from dataclasses import dataclass, field
 from contextlib import AsyncExitStack
 from mcp import ClientSession, StdioServerParameters, stdio_client, types
 
-from core.json_encoder import JsonEncoder
+from core.encoders.json_encoder import JsonEncoder
 
 
 @dataclass
@@ -22,7 +23,8 @@ class MCPTool:
     description: Union[str, None]
     parameters: Dict[str, Any] = field(default_factory=dict)
 
-
+MAX_CLIENT_IDLE_TIME_MS =  15 * 60 * 1000  #15 min
+MAX_LIFE_TIME_MS = 15 * 60 * 1000 
 class StdioMCPClient:
     """Client for interacting with an MCP server process via stdio, using the mcp library."""
 
@@ -33,15 +35,23 @@ class StdioMCPClient:
         self._exit_stack = AsyncExitStack()
         self._stdio_client_context = None  # To hold the async context manager
         self._tools: List[types.Tool] = []
+        self._initialize_at: datetime = datetime.now()
+        self._last_time_tool_called: datetime = datetime.now()
 
+
+    
     async def connect(self):
         try:
+            if self._session:
+                if MAX_CLIENT_IDLE_TIME_MS > (datetime.now() - self._last_time_tool_called).microseconds:
+                    return    
             stdio_transport = await self._exit_stack.enter_async_context(
                 stdio_client(self._server_params))
             self.read, self.write = stdio_transport
             self._session = await self._exit_stack.enter_async_context(
                 ClientSession(self.read, self.write))
             await self._session.initialize()
+            self._initialize_at = datetime.now()
             self._tools = await self.list_tools()
         except Exception:
             raise
@@ -62,7 +72,7 @@ class StdioMCPClient:
 
     async def call_tool(self, name: str, arguments: Dict[str, Any]) -> Union[types.CallToolResult, List[types.Tool]]:
         try:
-
+            self._last_time_tool_called =  datetime.now()
             if not self._session:
                 raise RuntimeError(
                     "MCP Session not initialized. Use 'async with StdioMCPClient(...)'")

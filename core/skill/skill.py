@@ -4,7 +4,7 @@ import sys
 import os
 from pathlib import Path
 from typing import Optional
-from core.utils import load_skill
+from core.utils.utils import load_skill
 
 
 @dataclass

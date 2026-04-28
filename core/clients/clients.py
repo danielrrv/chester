@@ -9,9 +9,9 @@ from google.genai.types import GenerationConfig as GeminiGenerationConfig, Tool 
 from google.cloud import aiplatform # New import for Vertex AI
 from vertexai.preview.generative_models import GenerativeModel, ChatSession, GenerationConfig, Tool # New imports for Vertex AI models
 
-from core.model import Model
-from core.response import ChesterResponse
-from core.token_tracker import UsageMetadata
+from core.models.model import Model
+from core.responses.response import ChesterResponse
+from core.analytics.token_tracker import UsageMetadata
 
 # NOTE: For OpenAI, you would typically import from `openai` library
 # from openai import OpenAI

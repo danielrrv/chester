@@ -6,7 +6,7 @@ token counts and estimates the associated costs based on the model used.
 from dataclasses import dataclass, field
 from typing import Optional
 from google.genai import types
-from core.model import Model
+from core.models.model import Model
 
 
 @dataclass 

@@ -3,8 +3,8 @@ from typing import Dict, List
 
 from mcp import StdioServerParameters
 
-from core.mcp_client import StdioMCPClient
-from core.mcp_server_config import StdioMCPServerConfiguration, StdioServerParametersWithDescription
+from core.mcp.mcp_client import StdioMCPClient
+from core.mcp.mcp_server_config import StdioMCPServerConfiguration, StdioServerParametersWithDescription
 
 
 class MCPManager:

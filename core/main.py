@@ -38,17 +38,17 @@ import asyncio
 # This will need further abstraction for full multi-provider tool support.
 from google import genai
 
-from core.json_encoder import JsonEncoder
-from core.mcp_client import StdioMCPClient
-from core.mcp_manager import MCPManager
-from core.mcp_server_config import StdioMCPServerConfiguration
-from core.request import ChesterRequest
-from core.response import ChesterResponse, ChesterResponseException
-from core.session import Model, Session
-from .agents import architect, skill_creator
-from .utils import write_skill_manifest
-from .skill import Skill
-from .clients import GeminiClient, LLMClient # Import the new LLM client abstraction
+from core.encoders.json_encoder import JsonEncoder
+from core.mcp.mcp_client import StdioMCPClient
+from core.mcp.mcp_manager import MCPManager
+from core.mcp.mcp_server_config import StdioMCPServerConfiguration
+from core.requests.request import ChesterRequest
+from core.responses.response import ChesterResponse, ChesterResponseException
+from core.session.session import Model, Session
+from .agents.agents import architect, skill_creator
+from .utils.utils import write_skill_manifest
+from .skill.skill import Skill
+from .clients.clients import GeminiClient, LLMClient # Import the new LLM client abstraction
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
