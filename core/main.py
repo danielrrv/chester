@@ -188,9 +188,7 @@ async def run_gemini_task(session: Session, client: LLMClient, mcp_manager: MCPM
                     if skill_name not in request.skills.keys():
                         logger.info(f'Agent requests loading new skill: {skill_name}')
                         request.skills[skill_name] = Skill(name=skill_name)
-            
-
-                        request.mcp_servers.append(StdioMCPClient())
+                        
             # Prepare the next input for the agent based on the command output or user response.
             next_agent_input_parts = [
                 f'Continue with the task: {response.next_subtask}\n',
