@@ -90,11 +90,11 @@ class AgentCommand:
                         f"🔌 Calling MCP Tool: {self.mcp_call.tool_name} on {self.mcp_call.server_name}")
                     result = await session.call_tool(self.mcp_call.tool_name, arguments=self.mcp_call.arguments)
                     if isinstance(result, CallToolResult):
-                        return AgentCommandOutput(stdout=json.dumps(json.loads(StdioMCPClient.sanitize_mcp_content(result.content[0].text))))
+                        return AgentCommandOutput(stdout=StdioMCPClient.sanitize_mcp_content(result.content[0].text))
                     else:
-                        return AgentCommandOutput(stdout=f"{result}")
+                        return AgentCommandOutput(stdout=f"{result}", stderr="", is_safe=message)
                 except Exception as e:
-                    return AgentCommand(str(e))
+                    return AgentCommandOutput(stdout="", stderr=str(e))
             elif self.inline_script:
                 # Execute inline scripts (Python/Bash) via stdin
                 process = subprocess.Popen(

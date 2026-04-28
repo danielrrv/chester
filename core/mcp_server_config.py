@@ -24,5 +24,5 @@ class StdioMCPServerConfiguration:
             servers_configuration: Dict[str, Any] = json.loads(content)
             mcp_servers: Dict[str, Any] = servers_configuration.get('mcpServers', {})
             for server_name, params in mcp_servers.items():
-                servers[server_name] = StdioServerParametersWithDescription(command=params['command'], description=params['description'], args=params['args'] or [], env=params['env'] or {} )
+                servers[server_name] = StdioServerParametersWithDescription(command=params['command'], description=params.get('description', ''), args=params.get('args', []), env=params.get('env', {}))
         return servers

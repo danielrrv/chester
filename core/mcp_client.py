@@ -19,7 +19,7 @@ class MCPToolCall:
 @dataclass
 class MCPTool:
     name: str
-    description: str
+    description: Union[str, None]
     parameters: Dict[str, Any] = field(default_factory=dict)
 
 

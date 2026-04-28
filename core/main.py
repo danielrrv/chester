@@ -309,13 +309,9 @@ if __name__ == '__main__':
                     break
                 # For the interactive loop, we can default to Gemini, or add input for provider/model
                 # For now, default to Gemini
-                
-                
                 client = get_client(provider='gemini', model=Model.gemini_2_5_flash) # Default LLM client for interactive mode.
                 mcp_server_config = StdioMCPServerConfiguration(config_json='config/mcp_servers.json')
                 mcp_manager= MCPManager(mcp_server_config)
-                
-                
                 thought = asyncio.run(run_gemini_task(session=session, client=client, mcp_manager=mcp_manager, user_task=user_task))
                 logger.info(f'Model response: {thought}')
                 session.token_tracker.report()
