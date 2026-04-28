@@ -50,7 +50,6 @@ class ChesterResponse:
             plan = [AgentStep(**s) for s in data.get("plan", [])]
             env = AgentEnvironment(**data.get("environment", {}))
             cmd = AgentCommand.from_dict(data.get("command"))
-    
             return cls(
                 thought=data.get("thought", ""),
                 summary_of_achievement=data.get("summary_of_achievement", ""),
@@ -70,8 +69,10 @@ class ChesterResponse:
                 usage_metadata = metadata['usage_metadata']
             )
             
-        except [json.JSONDecodeError, Exception]:
+        except json.JSONDecodeError:
             raise ChesterResponseException(f"Unparseable entity: {text}")
+        except Exception:
+            raise
 
     
     

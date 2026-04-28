@@ -1,6 +1,6 @@
 import json
 
-def architect(user_task, base_skills, absolute_path):
+def architect(user_task, base_skills, available_mcps, absolute_path):
     return f"""
 
 # ROLE
@@ -25,6 +25,12 @@ You are the Autonomous Architect. You are responsible for both Strategic Plannin
 {base_skills}
 ---
 
+#AVAILABLE MCP SERVERS:
+- Use mcp servers when needed.
+- When require one mcp server's tools, populate command with the mcp_call.
+---
+{json.dumps(available_mcps, indent=3)}
+---
 
 # INPUT CONTEXT
 - **USER_TASK**: {user_task}
@@ -43,8 +49,10 @@ You are the Autonomous Architect. You are responsible for both Strategic Plannin
         "files_created": ["list_of_files"]
   },
   "command": {
+        "mcp_call": { "server_name":"github|mongo|playwrigt", "tool_name":"browser", "arguments": {"arg1":"value1", "arg2":"value2"}},
         "binary": "executable_name",
-        "args": ["arg1", "arg2"]
+        "args": ["arg1", "arg2"],
+        "inline_script":"", 
   },
   "needs_user_information": "True if there's a missing information, Put your question into response_to_user. False if you don't need extra information to proceed",
   "response_to_user": "Here is the summary of the files: [Summary Content...]",

@@ -9,6 +9,7 @@ from typing import List, Optional, Self, Any
 
 from google.genai import types, chats # Keep types for now as they are used in History
 
+from core.mcp_server_config import StdioMCPServerConfiguration
 from core.model import Model
 from core.token_tracker import TokenTracker
 from .clients import LLMClient # Import the LLMClient abstraction
@@ -21,10 +22,11 @@ class SessionNotFound(Exception):
 class HistoryEnconder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, History):
-            return [obj.as_list()]
+            return obj.as_list()
         if isinstance(obj, Session):
-            return [{
+            return {
                 "id": (obj.id),
+                "system_instructions": obj.system_instructions,
                 "title": (obj.title),
                 "user_task": (obj.user_task),
                 "history": (obj.history),
@@ -33,11 +35,11 @@ class HistoryEnconder(json.JSONEncoder):
                 "token_tracker": obj.token_tracker,
                 "created_at": (obj.created_at),
                 "learnings": (obj.learnings)
-            }]
+            }
         if isinstance(obj, types.Content):
-            return [{"role": obj.role, "parts": obj.parts}]
+            return {"role": obj.role, "parts": obj.parts}
         if isinstance(obj, types.Part):
-            return [{"text": obj.text}]
+            return {"text": obj.text}
         if isinstance(obj, TokenTracker):
             return [{"total_candidates": obj.total_candidates, "total_prompt": obj.total_prompt}]
         else:
@@ -45,19 +47,19 @@ class HistoryEnconder(json.JSONEncoder):
 
 
 class History:
-    history: list[types.ContentOrDict] = []
+    _history: list[types.ContentOrDict] = []
 
     def append(self, interaction: types.ContentOrDict):
-        self.history.append(interaction)
+        self._history.append(interaction)
 
-    def as_list(self) -> list[types.ContentOrDict]:
-        return self.history
+    def as_list(self) -> List[types.ContentOrDict]:
+        return self._history
 
     def __iter__(self):
-        return iter(self.history)
+        return iter(self._history)
 
     def __getitem__(self, key) -> types.ContentOrDict:
-        return self.history[key]
+        return self._history[key]
 
 
 @dataclass()
@@ -81,12 +83,23 @@ class Session:
     def as_dict(self) -> dict:
         return asdict(self)
 
-    def last_message(self) -> str:
+    def last_message_parts(self) -> List[types.Part]:
         # Ensure history is not empty and has expected structure
         if not self.history or not self.history[-1].parts:
-            return ""
-        return self.history[-1].parts[0].model_dump()['text']
-
+            return types.Part(text="")
+        return self.history[-1].parts
+    
+    def last_assistant_message(self):
+        if not self.history or not self.history[-1].parts:
+            return types.Part(text="")
+        return list(filter(lambda x: x.role == 'model' , self.history.as_list()))[-1].parts[0].text
+        
+        
+    def append_message_to_last_user_interaction(self, parts:List[types.Part]):
+        if self.history and self.history[-1] and len(parts) > 0 :
+            self.history[-1].parts.append(*parts)
+            self.persist()
+    
     def persist(self) -> None:
         try:
             filename = 'session_' + self.id + ".json"
@@ -119,8 +132,6 @@ class Session:
         # NOTE: `system_instructions` and `model` are stored but their direct usage for chat configuration
         # is now handled by the `LLMClient`'s `start_chat` method, which encapsulates LLM-specific details.
 
-    def send_message(self, messages: List[types.Part]):
-        self.chat
     @staticmethod
     def list_sessions() -> list[dict]: # Changed return type to list[dict] as it returns raw dicts
         session_dir = Path(os.path.join(os.getcwd(), ".sessions")) # Use current working directory
@@ -145,6 +156,7 @@ class Session:
     def update_history(self, role: str, message: str) -> None:
         self.history.append(types.Content(
             role=role, parts=[types.Part(text=message)]))
+        
         self.persist()
 
     @classmethod
