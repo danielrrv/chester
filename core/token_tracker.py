@@ -14,7 +14,6 @@ class UsageMetadata:
     total_input: int = 0
     total_output:int  = 0
 
-
 @dataclass
 class TokenTracker:
     """Tracks token usage for language model interactions and calculates associated costs.
@@ -37,8 +36,6 @@ class TokenTracker:
                 Usage metadata containing prompt and candidate token counts from a
                 language model generation response.
         """
-        print(metadata)
-        print(self)
         if metadata:
             self.total_prompt += metadata.total_input
             self.total_candidates += metadata.total_output

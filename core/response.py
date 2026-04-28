@@ -50,7 +50,6 @@ class ChesterResponse:
             plan = [AgentStep(**s) for s in data.get("plan", [])]
             env = AgentEnvironment(**data.get("environment", {}))
             cmd = AgentCommand.from_dict(data.get("command"))
-            print(json.dumps(data, indent=4))
             return cls(
                 thought=data.get("thought", ""),
                 summary_of_achievement=data.get("summary_of_achievement", ""),

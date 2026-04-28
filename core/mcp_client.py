@@ -55,7 +55,6 @@ class StdioMCPClient:
                     "MCP Session not initialized. Use 'async with StdioMCPClient(...)'")
                 
             _, __,(___,self._tools) = await self._session.list_tools()
-            print(json.dumps(self._tools, cls=JsonEncoder))
             # Assuming `response.tools` is a list of objects with `name`, `description`, `parameters`.
             return [MCPTool(t.name, t.description, t.inputSchema) for t in self._tools]
         except Exception:
