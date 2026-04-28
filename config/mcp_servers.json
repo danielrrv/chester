@@ -1,0 +1,26 @@
+{
+    "mcpServers": {
+        "filesystem": {
+            "command": "npx",
+            "description": "Provides read/write access to the local workspace. Use this for file manipulation, logs analysis, and project structure exploration.",
+            "args": [
+                "-y",
+                "@modelcontextprotocol/server-filesystem",
+                "<YOUR_LOCAL_WORKSPACE>"
+            ],
+            "env":{}
+        },
+        "github": {
+            "command": "npx",
+            "description": "Enables repository management, issue tracking, and PR automation. Use this for version control and remote collaboration tasks.",
+            "args": [
+                "-y",
+                "@modelcontextprotocol/server-github"
+            ],
+            "env": {
+                "GITHUB_PERSONAL_ACCESS_TOKEN": "<YOUR_GIT_PATH>",
+                "PATH": "<YOUR_PATH>"
+            }
+        }
+    }
+}

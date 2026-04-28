@@ -9,6 +9,7 @@ from typing import List, Optional, Self, Any
 
 from google.genai import types, chats # Keep types for now as they are used in History
 
+from core.mcp_server_config import StdioMCPServerConfiguration
 from core.model import Model
 from core.token_tracker import TokenTracker
 from .clients import LLMClient # Import the LLMClient abstraction
