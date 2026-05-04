@@ -5,61 +5,26 @@ from typing import Optional
 
 
 
-def extract_skill_header(file_path: str) -> Optional[str]:
+def extract_uuid_from_filename(filename: str) -> str:
     """
-    Lee un archivo Markdown de habilidades y extrae el bloque entre '---'.
+    Extracts a UUID from a string formatted as 'session_uuid.json'.
+    Works with both standard 8-4-4-4-12 UUIDs and compact hex UUIDs.
     """
-    try:
-        with open(file_path, 'r', errors='replace') as f:
-            content = f.read()
-            
-            # Buscamos el contenido entre los dos primeros delimitadores '---'
-            # re.DOTALL permite que el punto (.) incluya saltos de línea
-            match = re.search(r'^---\s*(.*?)\s*---', content, re.DOTALL | re.MULTILINE)
-            
-            if match:
-                return match.group(1).strip()
-            print("not header found")
-            return None
-            
-    except FileNotFoundError:
-        print(f"Error: El archivo {file_path} no existe.")
-        return None
-    except Exception as e:
-        print(f"Error inesperado: {e}")
-        return None
+    # Regex breakdown:
+    # session_ : matches the literal prefix
+    # (.*?)    : captures any character (non-greedy) into Group 1
+    # \.json   : matches the literal extension
+    pattern = r"session_(.*?)\.json"
+    
+    match = re.search(pattern, filename)
+    
+    if match:
+        return match.group(1)
+    
+    # Fallback or error handling for your orchestrator
+    raise ValueError(f"Could not extract UUID from filename: {filename}")
     
 
-        
-def extract_skills_headers(skills_path):
-    loaded_skills = ""
-    root_folder = Path(skills_path)
-    skill_folders: list[Path]= [f for f in  root_folder.iterdir() if f.is_dir()]    
-    for folder in skill_folders:
-        files = [f for f in folder.iterdir() if f.is_file() and f.name.endswith(".md")]
-        for file in files:
-            print(os.path.join(skills_path, folder.name, file.name))
-            loaded_skills += extract_skill_header(os.path.join(skills_path, folder.name, file.name))+"\n\n---\n\n" 
-                
-    return loaded_skills
-    
-    
-def load_skill(skills_path, skill_name):
-    try:
-         with open(os.path.join(skills_path, skill_name, "SKILL.md"), 'r', encoding='utf-8') as f:
-            content = f.read()
-            match = re.search(r'^---\s*(.*?)\s*---', content, re.DOTALL | re.MULTILINE)
-            
-            if match:
-                return content[match.end() + 1:]
-            return content
-    except FileNotFoundError:
-        print(f"Error: El archivo {skills_path}/{skill_name}/SKILL.md no existe.")
-        return None
-    except Exception as e:
-        print(f"Error inesperado: {e}")
-        return None
-          
                 
 def write_skill_manifest(skills_path: str, skill_name:str, content: str)-> None:
     try:

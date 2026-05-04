@@ -152,3 +152,28 @@ class OpenAIClient(LLMClient):
             f"OpenAI generate_content not yet implemented for model {self.model_name}.")
 
 # NOTE: Add other LLM client implementations here as needed.
+
+
+
+# NOTE: The global 'client' and 'model' declarations have been removed.
+# LLM client instances are now created and passed dynamically.
+# How many repositories do I have in github 
+def get_client(provider: str, model: Model) -> LLMClient:
+    """
+    Dynamically selects and instantiates the appropriate LLM client.
+
+    Args:
+        provider (str): The name of the LLM provider (e.g., 'gemini', 'openai').
+        model (Model): The specific model name to use (e.g., 'gemini-2.5-flash', 'gpt-4').
+
+    Returns:
+        LLMClient: An instance of the selected LLM client.
+
+    Raises:
+        ValueError: If an unsupported LLM provider is requested.
+    """
+    if provider.lower() == 'gemini':
+        return GeminiClient(model = model)
+    # TODO: Add more LLM providers here (e.g., elif provider.lower() == 'openai': return OpenAIClient(model_name=model))
+    else:
+        raise ValueError(f"Unsupported LLM provider: {provider}")

@@ -28,6 +28,7 @@ class TokenTracker:
     total_candidates: int = 0
     model: Model = field(default=Model.gemini_2_5_flash)
 
+
     def update(self, metadata: UsageMetadata):
         """Updates the token counts based on the provided usage metadata.
 

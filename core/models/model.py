@@ -47,7 +47,10 @@ class Model(Enum):
     gemini_2_5_pro = "gemini-2.5-pro"
     gemini_1_5_pro = "gemini-1.5-pro"
     gemini_1_5_flash_vertex = "gemini-1.5-flash-001" # New Vertex AI model
-
+    
+    def __dict__(self):
+        return {self.name: self.value}
+    
     def prices(self) -> ModelPrice | None:
         """Retrieves the pricing information for the current model.
 

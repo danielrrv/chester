@@ -1,6 +1,7 @@
-# Byte-code files
+# Byte-code filesssss
 *.pyc
 __pycache__
+config/
 
 # Distribution / packaging
 .Python
@@ -24,3 +25,4 @@ venv/
 env/
 .json
 .sessions/
+.playwright-mcp/

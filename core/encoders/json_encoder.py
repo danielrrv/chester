@@ -1,21 +1,28 @@
 
-from abc import ABC, abstractmethod
+
 import json
-from dataclasses import is_dataclass, asdict
+from dataclasses import is_dataclass, fields
 
 
 
 class JsonEncoder(json.JSONEncoder):
     def default(self, obj):
-        # 1. Handle Dataclasses automatically
+    # 1. Handle Dataclasses automatically
         if is_dataclass(obj):
-            return asdict(obj)
-        
+         # Create a shallow dict of the fields
+            # This avoids the recursive deepcopy that triggers the pickle error
+            result = {}
+            for f in fields(obj):
+                # EXCLUDE the 'client' and other service-related fields
+                if f.name in ['client']:
+                    continue
+                
+                value = getattr(obj, f.name)
+                result[f.name] = value
+            return result
         # 2. Handle "Untouchable" classes by dumping their __dict__
-        # This works for 90% of standard Python classes
         if hasattr(obj, "__dict__"):
             return obj.__dict__
-            
         return super().default(obj)
     
         

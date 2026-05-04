@@ -21,6 +21,7 @@ You are the Autonomous Architect. You are responsible for both Strategic Plannin
 # BASE SKILLS (Injected Manifests). 
 - Read the corresponding skill and extract relevant commands and learn how to use it. Then apply it.
 - Do not call the binary as the skill name since the skill itself is not an executable.
+- Populate the next_detected_skill_to_load when you need to load a new skill. 
 ---
 {base_skills}
 ---
@@ -63,7 +64,7 @@ You are the Autonomous Architect. You are responsible for both Strategic Plannin
   "is_complete": False
 })}
 
-IMPORT: Do not include inline_script and binary & args in the same response. Just pick the best way to execute the command.
+IMPORTANT: Do not include inline_script and binary & args in the same response. Just pick the best way to execute the command.
 
 """
 

@@ -1,5 +1,8 @@
-from dataclasses import dataclass, field
+
+import os
 import json
+
+from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
 from core.commands.commands import AgentCommand, AgentCommandOutput
@@ -18,16 +21,16 @@ class AgentStep:
 
 @dataclass
 class AgentEnvironment:
-    current_working_directory: str
+    current_working_directory: str = field(default_factory=lambda:os.getcwd())
     files_created: List[str] = field(default_factory=list)
 
-
+  
 @dataclass
 class ChesterResponse:
-    thought: str
-    summary_of_achievement: str
-    plan: List[AgentStep]
-    environment: AgentEnvironment
+    thought: str = field(default="")
+    summary_of_achievement: str = field(default="")
+    plan: List[AgentStep] = field(default_factory=list)
+    environment: AgentEnvironment = field(default_factory=AgentEnvironment)
     command: Optional[AgentCommand] = field(default_factory=AgentCommand)
     learnings: Dict[str, Any] = field(default_factory=dict)
     next_detected_skill_to_load: List[str] = field(default_factory=list)
@@ -40,16 +43,43 @@ class ChesterResponse:
     _user_response: str = field(init=False, default="")
     _command_result_output: Optional[AgentCommandOutput] = field(init=False, default_factory=AgentCommandOutput)
 
+
+    @property   
+    def user_response(self):
+        return self._user_response
+    
+    @user_response.setter    
+    def user_response(self, value: str):
+        self._user_response = value
+        
+    @property
+    def command_result_output(self):
+        return self._command_result_output
+        
+    @command_result_output.setter
+    def command_result_output(self, value: AgentCommandOutput):
+        self._command_result_output = value
+            
+           
+
+        
     @classmethod
     def from_text(cls, text: str, metadata:Dict[str, Any]) -> Optional['ChesterResponse']:
         text = text.replace("```json", "").replace("```", "").strip()
         try:
 
             data = json.loads(text)
-
+            print(data)
             plan = [AgentStep(**s) for s in data.get("plan", [])]
             env = AgentEnvironment(**data.get("environment", {}))
             cmd = AgentCommand.from_dict(data.get("command"))
+            
+            usage_metadata = {}
+            if hasattr(data,'usage_metadata'):
+                usage_metadata = data.get('usage_metadata')
+            elif hasattr(metadata, 'usage_metadata'):
+                usage_metadata = metadata.get('usage_metadata')
+                
             return cls(
                 thought=data.get("thought", ""),
                 summary_of_achievement=data.get("summary_of_achievement", ""),
@@ -66,7 +96,7 @@ class ChesterResponse:
                 needs_approval=str(data.get("needs_approval", "")
                                    ).lower() == "true",
                 is_complete=str(data.get("is_complete", "")).lower() == "true",
-                usage_metadata = metadata['usage_metadata']
+                usage_metadata = usage_metadata
             )
             
         except json.JSONDecodeError:
@@ -75,19 +105,29 @@ class ChesterResponse:
             raise
 
     
-    
-    @property   
-    def user_response(self):
-        return self._user_response
-    
-    @property
-    def command_result_output(self):
-        return self._command_result_output
+
+class UserResponse:
+    def __init__(self, user_message:str, command_output: Optional[AgentCommandOutput], learnings:Optional[Dict[str, str]] = None, plan:Optional[Dict[Any, Any]] = None):
+        self.user_message = user_message
+        self.command_output = command_output
+        self.learnings= learnings
+        self.plan = plan
+    def __repr__(self):
+        text = ""
+        if self.command_output:
+            text= f"""Continue with the task:{self.user_message}
+                    Here are the command's output:
+                        {json.dumps({"stdout":self.command_output.stdout, "stderr": self.command_output.stderr}, indent=3)}"            
+            """
         
-    @user_response.setter    
-    def user_response(self, value: str):
-        self._user_response = value
-        
-    @command_result_output.setter
-    def command_result_output(self, value: AgentCommandOutput):
-        self._command_result_output = value
+  
+        else:        
+            text = f"""Continue with the task:{self.user_message}"""
+            
+            
+        if self.learnings:
+            text+=f"""\n\n
+                    Here's the learnings
+                    {json.dumps(self.learnings)}
+            """
+        return text
