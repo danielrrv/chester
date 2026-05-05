@@ -27,6 +27,7 @@ class TokenTracker:
     total_prompt: int = 0
     total_candidates: int = 0
     model: Model = field(default=Model.gemini_2_5_flash)
+    
 
 
     def update(self, metadata: UsageMetadata):

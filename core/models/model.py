@@ -24,6 +24,7 @@ class ModelPrice:
     output: float # Corrected type hint to float for prices
 
 
+
 # A dictionary mapping model names (strings) to their respective ModelPrice objects.
 # These prices are typically in USD per 1M tokens or similar units.
 PRICES: dict[str, ModelPrice] = {
@@ -50,7 +51,15 @@ class Model(Enum):
     
     def __dict__(self):
         return {self.name: self.value}
-    
+    @classmethod
+    def to_value(cls):
+        match cls:
+            case Model.gemini_2_5_flash: return "gemini-2.5-flash"
+            case Model.gemini_2_5_flash_lite: return "gemini-2.5-flash-lite"
+            case Model.gemini_2_5_pro: return "gemini-2.5-pro"
+            case Model.gemini_1_5_pro: return "gemini-1.5-pro"
+            case Model.gemini_1_5_flash_vertex: return "gemini-1.5-flash-001"
+            
     def prices(self) -> ModelPrice | None:
         """Retrieves the pricing information for the current model.
 
@@ -63,10 +72,13 @@ class Model(Enum):
 def get_llm_client(model: Model) -> 'LLMClient':
     """Factory function to get the appropriate LLM client for a given model."""
     from core.clients.clients import GeminiClient, VertexAIClient # Import inside for factory function to avoid circular imports unless TYPE_CHECKING is used effectively
-
-    if model in [Model.gemini_2_5_flash, Model.gemini_2_5_flash_lite, Model.gemini_2_5_pro, Model.gemini_1_5_pro]:
-        return GeminiClient(model=model)
-    elif model == Model.gemini_1_5_flash_vertex:
-        return VertexAIClient(model=model)
-    else:
-        raise ValueError(f"Unsupported model: {model.name}")
+    match model:
+        case Model.gemini_2_5_flash | Model.gemini_2_5_flash_lite | Model.gemini_2_5_pro | Model.gemini_1_5_pro:
+            return GeminiClient(model=model)
+        case Model.gemini_1_5_flash_vertex:
+            return VertexAIClient(model=model)
+        # Alternative implementation using direct string matching
+        case _:
+            raise ValueError(f"Unsupported model: {model.name}")
+  
+        

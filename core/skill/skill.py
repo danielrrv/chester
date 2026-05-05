@@ -38,7 +38,12 @@ class Skill:
             return self.load_content()
         except FileNotFoundError:
             raise
+    
+    @staticmethod
+    def all_names() -> list[str]:
+        return [f.stem for f in Path(Skill._SKILL_PATH).iterdir() if f.is_dir()]
 
+    
     @staticmethod
     def all_headers() -> str:
         loaded_skills = ""

@@ -64,14 +64,15 @@ class GeminiClient(LLMClient):
         # For Gemini, the chat_session object handles sending messages.
         # The `message` here is expected to be `content` for `send_message`
         raw_response = self._chat.send_message(messages)
-        return ChesterResponse.from_text(raw_response.text, {"usage_metadata": UsageMetadata(int(raw_response.usage_metadata.prompt_token_count), int(raw_response.usage_metadata.candidates_token_count))})
+        return ChesterResponse.from_text(raw_response.text, {"usage_metadata": UsageMetadata(total_input=int(raw_response.usage_metadata.prompt_token_count), total_output=int(raw_response.usage_metadata.candidates_token_count))})
 
     def generate_content(self, contents: Any, generation_config: Optional[GeminiGenerationConfig] = None, tools: Optional[List[GeminiTool]] = None) -> Any:
-        return self._model.generate_content(
+    
+        return self._client.models.generate_content(
+            model=self._model.value,
             contents=contents,
-            generation_config=generation_config,
-            tools=tools
-        )
+            config=generation_config)
+        
 
 
 class VertexAIClient(LLMClient):

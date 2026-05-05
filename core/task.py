@@ -103,6 +103,7 @@ async def run_task(session: Session, request: ChesterRequest) -> str:
             if response.is_complete:
                 # If the model indicates the task is complete, update history and log success.
                 session.update_history(role='model', message=response.response_to_user)
+                session.turn = 0
                 logger.info(
                     '✅ Task Completed! The agent has finished the user task.')
                 break
@@ -165,7 +166,8 @@ async def run_task(session: Session, request: ChesterRequest) -> str:
                 'An unexpected error occurred during task execution:')
             session.update_history(
                 role='user', message=f'Error: {str(e)}. Please try again or refine the task.')
-
+        finally:
+            session.persist()
     # await request.mcp_manager.cleanup
     if request.mcp_manager:
         mcp_manager = request.mcp_manager

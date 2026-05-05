@@ -48,7 +48,7 @@ from core.requests.request import ChesterRequest
 from core.responses.response import ChesterResponse, ChesterResponseException
 from core.session.session import Model, Session
 from core.task import run_task
-from .agents.agents import architect, skill_creator
+from .agents.agents import Architect, SubAgent, architect, skill_creator
 from .utils.utils import write_skill_manifest
 from .skill.skill import Skill
 # Import the new LLM client abstraction
@@ -168,10 +168,10 @@ if __name__ == '__main__':
         request: ChesterRequest = ChesterRequest(
             user_approval=user_approval,
             user_response='',
-            master_client=Model.gemini_2_5_flash,
-            clients={Model.gemini_2_5_flash: client},
+            master_client= Model.gemini_2_5_flash,
+            clients={ Model.gemini_2_5_flash: client},
             mcp_manager=mcp_manager,
-            # Infer provider from model name for now
+            # Infer provider from model name for now.
             provider=client.model.value.split('-')[0],
             model=client.model.value,
             turn=session.turn
@@ -185,22 +185,24 @@ if __name__ == '__main__':
                     if user_task.lower() in ['exit', 'quit']:
                         logger.info('Exiting interactive chat.')
                         break
-                
+                        
                     request.set_system_instructions(
-                        architect(
-                            user_task=user_task,
-                            base_skills=Skill.all_headers(),
+                       Architect(
+                            task=user_task,
+                            skills=[Skill(name=skill_name) for skill_name in Skill.all_names()],
                             available_mcps=StdioMCPServerConfiguration.get_descriptions(
                                 mcp_manager.config),
-                            absolute_path=os.getcwd()
-                        )
+                            path=os.getcwd(),
+                            model=Model.gemini_2_5_flash,
+                            avaible_sub_agents=[]
+                            
+                        ).to_prompt()
                     )
 
                 # For the interactive loop, we can default to Gemini, or add input for provider/model
                 # For now, default to Gemini
                 request.set_user_task(user_task)
-                thought = asyncio.run(
-                    run_task(session=session, request=request))
+                thought = asyncio.run(run_task(session=session, request=request))
                 logger.info(f'Model response: {thought}')
                 
                 if session.last_response.is_complete:
@@ -211,8 +213,8 @@ if __name__ == '__main__':
                 if session.last_response.needs_approval:
                     user_approval = input('Approve command? (yes/no): ').strip()
                     request.user_approval = True if user_approval.lower() =='yes' else False
-                if session.last_response.needs_user_information:
-                   user_response = input( 'Model requests you: ' + session.last_response.response_to_user + '\n. Your response:').strip()
+                if session.last_response.needs_user_information and not session.last_response.is_complete:
+                   user_response = input( 'Model requests you: ' + session.last_response.response_to_user + 'Your response:').strip()
                    request.user_response = user_response
                 
                 
