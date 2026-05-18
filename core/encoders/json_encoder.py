@@ -23,6 +23,9 @@ class JsonEncoder(json.JSONEncoder):
         # 2. Handle "Untouchable" classes by dumping their __dict__
         if hasattr(obj, "__dict__"):
             return obj.__dict__
+        # 3. Handle sets
+        if isinstance(obj, set):
+            return list(obj)
         return super().default(obj)
     
         

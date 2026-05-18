@@ -8,7 +8,8 @@ from contextlib import AsyncExitStack
 from mcp import ClientSession, StdioServerParameters, stdio_client, types
 
 from core.encoders.json_encoder import JsonEncoder
-
+MAX_CLIENT_IDLE_TIME_MS =  15 * 60 * 1000  #15 min
+MAX_LIFE_TIME_MS = 15 * 60 * 1000 
 
 @dataclass
 class MCPToolCall:
@@ -23,8 +24,7 @@ class MCPTool:
     description: Union[str, None]
     parameters: Dict[str, Any] = field(default_factory=dict)
 
-MAX_CLIENT_IDLE_TIME_MS =  15 * 60 * 1000  #15 min
-MAX_LIFE_TIME_MS = 15 * 60 * 1000 
+
 class StdioMCPClient:
     """Client for interacting with an MCP server process via stdio, using the mcp library."""
 

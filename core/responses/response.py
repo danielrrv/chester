@@ -24,6 +24,16 @@ class AgentEnvironment:
     current_working_directory: str = field(default_factory=lambda:os.getcwd())
     files_created: List[str] = field(default_factory=list)
 
+
+@dataclass
+class SubAgent:
+    agent_role: str
+    role_description: str
+    task: str
+    context: str
+    required_skills: List[str]
+  
+  
   
 @dataclass
 class ChesterResponse:
@@ -40,6 +50,7 @@ class ChesterResponse:
     needs_approval: bool = False
     is_complete: bool = False
     usage_metadata:UsageMetadata = field(default_factory=lambda: UsageMetadata(0, 0))
+    sub_agents: List[SubAgent] = field(default_factory=list) 
     _user_response: str = field(init=False, default="")
     _command_result_output: Optional[AgentCommandOutput] = field(init=False, default_factory=AgentCommandOutput)
 
@@ -73,7 +84,7 @@ class ChesterResponse:
             plan = [AgentStep(**s) for s in data.get("plan", [])]
             env = AgentEnvironment(**data.get("environment", {}))
             cmd = AgentCommand.from_dict(data.get("command"))
-            
+            sub_agents = [SubAgent(**sa) for sa in data.get("sub_agents", [])]
             usage_metadata = {}
             if hasattr(data,'usage_metadata'):
                 usage_metadata = data.get('usage_metadata')
@@ -96,7 +107,8 @@ class ChesterResponse:
                 needs_approval=str(data.get("needs_approval", "")
                                    ).lower() == "true",
                 is_complete=str(data.get("is_complete", "")).lower() == "true",
-                usage_metadata = usage_metadata
+                usage_metadata = usage_metadata,
+                sub_agents=sub_agents
             )
             
         except json.JSONDecodeError:
