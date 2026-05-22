@@ -158,7 +158,13 @@ class Session:
         
     def append_message_to_last_user_interaction(self, parts:List[types.Part]):
         if self.history and self.history[-1] and len(parts) > 0 :
-            self.history[-1].parts.append(*parts)
+            for part in parts:
+                if isinstance(part, types.Part):
+                    self.history[-1].parts.append(part)
+                elif isinstance(part, str):
+                    self.history[-1].parts.append(types.Part(text=part))
+                else:
+                    raise ValueError(f"Unsupported part type: {type(part)}")
             self.persist()
     
     def persist(self) -> None:
@@ -179,7 +185,7 @@ class Session:
             raise
     
     
-    def set_client(self, client: LLMClient, system_instructions: str):
+    async def set_client(self, client: LLMClient, system_instructions: str):
         """
         Initializes a new chat session using the provided LLM client.
 
@@ -193,7 +199,7 @@ class Session:
         # For GeminiClient, start_chat will use the client's internal model.
         # The system_instructions can be part of the initial history if required by the LLM.
         # For now, we pass history and client handles system instruction via prompt
-        client.create(system_instructions=system_instructions, history=self.history) 
+        await client.create(system_instructions=system_instructions, history=self.history) 
         self.client = client
         # NOTE: `system_instructions` and `model` are stored but their direct usage for chat configuration
         # is now handled by the `LLMClient`'s `start_chat` method, which encapsulates LLM-specific details.

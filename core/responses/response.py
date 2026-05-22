@@ -33,8 +33,6 @@ class SubAgent:
     context: str
     required_skills: List[str]
   
-  
-  
 @dataclass
 class ChesterResponse:
     thought: str = field(default="")

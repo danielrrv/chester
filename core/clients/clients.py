@@ -27,16 +27,16 @@ class LLMClient(ABC):
         return self._model
 
     @abstractmethod
-    def create(self, system_instructions: str, history: List[ContentOrDict]):
+    async def create(self, system_instructions: str, history: List[ContentOrDict]):
         pass
 
     @abstractmethod
-    def send_message(self, messages) -> ChesterResponse:
+    async def send_message(self, messages) -> ChesterResponse:
         """Sends a message to an existing LLM chat session and returns its response."""
         pass
 
     @abstractmethod
-    def generate_content(self, contents: Any, generation_config: Optional[Any] = None, tools: Optional[List[Any]] = None) -> Any:
+    async def generate_content(self, contents: Any, generation_config: Optional[Any] = None, tools: Optional[List[Any]] = None) -> Any:
         """Generates content based on the provided inputs (e.g., for skill creation)."""
         pass
 
@@ -53,25 +53,30 @@ class GeminiClient(LLMClient):
     def model(self) -> Model:
         return self._model
 
-    def create(self, system_instructions: str, history: List[ContentOrDict]) -> None:
-        self._chat = self._client.chats.create(
+    async def create(self, system_instructions: str, history: List[ContentOrDict]) -> None:
+        import asyncio
+        self._chat = await asyncio.to_thread(
+            self._client.chats.create,
             model=self._model.value,
             config={"system_instruction": system_instructions,
                     "response_mime_type": "application/json"},
-            history=history)
+            history=history
+        )
 
-    def send_message(self, messages: List[Part]) -> ChesterResponse:
+    async def send_message(self, messages: List[Part]) -> ChesterResponse:
+        import asyncio
         # For Gemini, the chat_session object handles sending messages.
-        # The `message` here is expected to be `content` for `send_message`
-        raw_response = self._chat.send_message(messages)
+        raw_response = await asyncio.to_thread(self._chat.send_message, messages)
         return ChesterResponse.from_text(raw_response.text, {"usage_metadata": UsageMetadata(total_input=int(raw_response.usage_metadata.prompt_token_count), total_output=int(raw_response.usage_metadata.candidates_token_count))})
 
-    def generate_content(self, contents: Any, generation_config: Optional[GeminiGenerationConfig] = None, tools: Optional[List[GeminiTool]] = None) -> Any:
-    
-        return self._client.models.generate_content(
+    async def generate_content(self, contents: Any, generation_config: Optional[GeminiGenerationConfig] = None, tools: Optional[List[GeminiTool]] = None) -> Any:
+        import asyncio
+        return await asyncio.to_thread(
+            self._client.models.generate_content,
             model=self._model.value,
             contents=contents,
-            config=generation_config)
+            config=generation_config
+        )
         
 
 

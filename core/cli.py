@@ -17,7 +17,7 @@ from core.mcp.mcp_manager import MCPManager
 from core.mcp.mcp_server_config import StdioMCPServerConfiguration
 from core.requests.request import ChesterRequest
 from core.session.session import Model, Session
-from core.task import run_task
+from core.task.task import run_task
 from .agents.agents import Architect, skill_creator
 from .utils.utils import write_skill_manifest
 from .skill.skill import Skill
