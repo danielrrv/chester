@@ -14,7 +14,7 @@ import asyncio
 import logging
 import gc
 from pathlib import Path
-from typing import Optional
+from typing import Dict, List, Optional
 from dotenv import load_dotenv
 from rich.traceback import Traceback
 from textual.app import App, ComposeResult
@@ -27,7 +27,7 @@ from textual import work
 
 from core.session.session import Session, Model
 from core.requests.request import ChesterRequest
-from core.task.task import run_task
+from core.task.task import Task, Message, InfoMessage, AgentMessage, ErrorMessage, ApprovalMessage, NeedsUserInputMessage
 from core.mcp.mcp_manager import MCPManager
 from core.mcp.mcp_server_config import StdioMCPServerConfiguration
 from core.clients.clients import get_client
@@ -66,6 +66,8 @@ class CodeBrowser(App):
     session: var[Optional[Session]] = var(None)
     che_request: var[Optional[ChesterRequest]] = var(None)
     mcp_manager: var[Optional[MCPManager]] = var(None)
+    waiting_for_session_selection: var[bool] = var(False)
+    available_sessions: var[List[Dict[str, str]]] = var([])
 
     def watch_show_tree(self, show_tree: bool) -> None:
         """Called when show_tree is modified."""
@@ -73,10 +75,10 @@ class CodeBrowser(App):
 
     def compose(self) -> ComposeResult:
         """Compose our UI."""
-        path = "./" if len(sys.argv) < 2 else sys.argv[1]
+        # Removed: path = "./" if len(sys.argv) < 2 else sys.argv[1]
         yield Header()
         with Container():
-            # yield DirectoryTree(path, id="tree-view")
+            # yield DirectoryTree("./", id="tree-view")
             with VerticalScroll(id="code-view"):
                 yield Log(id="chat-log", max_lines=1000)
                 yield Log(id="agent-logs", max_lines=500)
@@ -99,9 +101,57 @@ class CodeBrowser(App):
         core_logger = logging.getLogger("core")
         core_logger.addHandler(handler)
         core_logger.setLevel(logging.INFO)
+
+        self.available_sessions = Session.get_selectable_sessions()
+        if not self.available_sessions:
+            self.log_message("System: No previous sessions found. Starting a new session.")
+            await self._initialize_session_and_request(session_id=None)
+        else:
+            self.log_message("System: Select a session to resume or create a new one:")
+            for i, session_info in enumerate(self.available_sessions):
+                self.log_message(f"[{i+1}] {session_info['label']}")
+            self.log_message("[0] Create New Session")
+            
+            input_widget = self.query_one("#user-input", Input)
+            input_widget.placeholder = "Enter session number or '0' for new session..."
+            input_widget.add_class("needs-attention")
+            self.waiting_for_session_selection = True
+
+    async def _initialize_session_and_request(self, session_id: Optional[str]) -> None:
+        self.session = Session.find_or_create(session_id=session_id)
         
-        # Initialize session and agent
-        self.session = Session.find_or_create(session_id=None)
+        # Resume session history if not new
+        if not self.session.is_new:
+            self.log_message(f"System: Resuming session {self.session.id}")
+            for content in self.session.history:
+                role = content.role
+                parts_text = []
+                for part in content.parts:
+                    if hasattr(part, 'text') and part.text:
+                        parts_text.append(part.text)
+                
+                text = " ".join(parts_text)
+                if not text:
+                    continue
+                
+                if role == 'user':
+                    self.log_message(f"User: {text}")
+                elif role == 'model':
+                    self.log_message(f"Chester: {text}")
+            
+            # Update UI state based on last response
+            input_widget = self.query_one("#user-input", Input)
+            if self.session.last_response.needs_approval:
+                self.log_message("System: Approve command? (yes/no)")
+                input_widget.placeholder = "Approve? (yes/no) or explain why not..."
+                input_widget.add_class("needs-attention")
+            elif self.session.last_response.needs_user_information:
+                prompt = self.session.last_response.response_to_user or "Chester needs more information."
+                self.log_message(f"Chester needs information: {prompt}")
+                input_widget.placeholder = "Provide the requested information..."
+                input_widget.add_class("needs-attention")
+
+        self.session.add_skill(Skill(name='unix-file-manipulation'))
         
         # Default LLM client
         selected_model = Model.gemini_2_5_flash
@@ -120,7 +170,12 @@ class CodeBrowser(App):
             turn=self.session.turn
         )
         
-        self.log_message("System: Chester initialized. Ready for tasks.")
+        if self.session.is_new:
+            self.log_message("System: Chester initialized. Ready for tasks.")
+        else:
+            self.log_message(f"System: Session {self.session.id} loaded. Ready for tasks.")
+        self.query_one("#user-input").focus()
+
 
     def log_message(self, message: str) -> None:
         self.query_one("#chat-log", Log).write_line(message)
@@ -133,11 +188,32 @@ class CodeBrowser(App):
         event.input.value = ""
         self.log_message(f"User: {user_input}")
 
-        # Reset placeholder and classes
         input_widget = self.query_one("#user-input", Input)
         input_widget.placeholder = "Type your task or response here..."
         input_widget.remove_class("needs-attention")
 
+        if self.waiting_for_session_selection:
+            try:
+                selection = int(user_input)
+                if selection == 0:
+                    session_id_to_load = None
+                    self.log_message("System: Creating a new session.")
+                elif 1 <= selection <= len(self.available_sessions):
+                    session_id_to_load = self.available_sessions[selection - 1]['id']
+                    self.log_message(f"System: Selected session {session_id_to_load}.")
+                else:
+                    self.log_message("System: Invalid selection. Please enter a valid number or '0'.")
+                    input_widget.add_class("needs-attention")
+                    return
+                
+                await self._initialize_session_and_request(session_id_to_load)
+                self.waiting_for_session_selection = False
+            except ValueError:
+                self.log_message("System: Invalid input. Please enter a number.")
+                input_widget.add_class("needs-attention")
+            return
+        
+        # Original logic for task submission
         if self.session.last_response and self.session.last_response.needs_approval:
             self.che_request.user_approval = True if user_input.lower() in ['yes', 'y'] else False
             # If disapproved, we might want to pass the reason why
@@ -170,14 +246,33 @@ class CodeBrowser(App):
         agent_logs.clear()
         agent_logs.add_class("visible")
 
-        last_thought = ""
+        last_assistant_msg = ""
         try:
-            async for thought in run_task(session=self.session, request=self.che_request):
-                agent_logs.write_line(thought)
-                last_thought = thought
+            async for message in Task.run(session=self.session, request=self.che_request):
+                if isinstance(message, InfoMessage):
+                    # Info messages go to chat log with System prefix
+                    self.log_message(f"System: {message.text}")
+                elif isinstance(message, AgentMessage):
+                    # Agent thoughts go to the secondary log
+                    agent_logs.write_line(message.text)
+                    last_assistant_msg = message.text
+                elif isinstance(message, ErrorMessage):
+                    self.log_message(f"Error: {message.text}")
+                elif isinstance(message, (ApprovalMessage, NeedsUserInputMessage)):
+                    # Direct requests to user
+                    self.log_message(f"Chester: {message.text}")
+                elif isinstance(message, str):
+                    last_assistant_msg = message
+                else:
+                    # Fallback for any other message types
+                    agent_logs.write_line(str(message))
 
-            # After streaming finished, log the final assistant message to chat-log
-            self.log_message(f"Chester: {last_thought}")
+            # After streaming finished, log the final assistant message to chat-log if we haven't already
+            
+            if self.session.last_response.response_to_user:
+                self.log_message(f"Chester: {self.session.last_response.response_to_user}")
+            elif last_assistant_msg:
+                self.log_message(f"Chester: {last_assistant_msg}")
 
             input_widget = self.query_one("#user-input", Input)
             if self.session.last_response.is_complete:
@@ -196,7 +291,6 @@ class CodeBrowser(App):
                 input_widget.add_class("needs-attention")
 
             input_widget.focus()
-
         except Exception as e:
             self.log_message(f"Error: {str(e)}")
             import traceback

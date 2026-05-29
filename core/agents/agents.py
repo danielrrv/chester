@@ -136,6 +136,7 @@ class Architect(BaseAgent):
           # OUTPUT FORMAT (Strict JSON)
             {json.dumps({
             "thought": "Analysis of progress, intent, and tool selection logic.",
+            "intent": "The user's intent based on the task and history.",
             "summary_of_achievement": "Recap of successfully completed steps in this session.",
             "plan": [{
                 "step": 1,

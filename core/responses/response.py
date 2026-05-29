@@ -37,6 +37,7 @@ class SubAgent:
 class ChesterResponse:
     thought: str = field(default="")
     summary_of_achievement: str = field(default="")
+    intent: str = field(default="")
     plan: List[AgentStep] = field(default_factory=list)
     environment: AgentEnvironment = field(default_factory=AgentEnvironment)
     command: Optional[AgentCommand] = field(default_factory=AgentCommand)
@@ -92,6 +93,7 @@ class ChesterResponse:
             return cls(
                 thought=data.get("thought", ""),
                 summary_of_achievement=data.get("summary_of_achievement", ""),
+                intent=data.get("intent", ""),
                 plan=plan,
                 environment=env,
                 command = cmd,

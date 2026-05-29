@@ -131,7 +131,8 @@ class Session:
                 import logging
                 logging.error(f"Error loading session file {f.name}: {e}")
                 continue
-        return sessions
+        sorted_sessions = sorted(sessions, key=lambda x: x.get('created_at', ''), reverse=True)
+        return sorted_sessions
     
     def __repr__(self):
         return str(self.__dict__)
@@ -204,10 +205,38 @@ class Session:
         # NOTE: `system_instructions` and `model` are stored but their direct usage for chat configuration
         # is now handled by the `LLMClient`'s `start_chat` method, which encapsulates LLM-specific details.
     
-
     def update_history(self, role: str, message: str) -> None:
         self.history.append(types.Content(
             role=role, parts=[types.Part(text=message)]))
         self.persist()
+    
+    @classmethod
+    def get_selectable_sessions(cls) -> List[Dict[str, str]]:
+        sessions_data = cls.list_sessions()
+        selectable_list = []
+        for session_data in sessions_data:
+            session_id = session_data.get('id', 'unknown')
+            created_at = session_data.get('created_at', 'N/A')
+            user_task = session_data.get('user_task', 'No task specified')
+            last_message_preview = ""
+            if 'history' in session_data and session_data['history']:
+                # Find the last message that has actual text content
+                for entry in reversed(session_data['history']):
+                    if 'parts' in entry and entry['parts']:
+                        for part in reversed(entry['parts']):
+                            if 'text' in part and part['text']:
+                                last_message_preview = part['text'].replace('\n', ' ')[:50] + '...' if len(part['text']) > 50 else part['text'].replace('\n', ' ')
+                                break
+                    if last_message_preview:
+                        break
+
+            label = f"{session_id[:8]}... - {user_task or last_message_preview or 'No recent activity'}"
+            description = f"Created: {created_at}. Task: {user_task or 'N/A'}. Last message: {last_message_preview or 'N/A'}"
+            selectable_list.append({
+                "id": session_id,
+                "label": label,
+                "description": description
+            })
+        return selectable_list
 
     

@@ -1,0 +1,87 @@
+/* core/apps/code_browser.tcss */
+
+Screen {
+    background: $surface;
+}
+
+Header {
+    dock: top;
+    background: $primary;
+    color: $text;
+}
+
+Footer {
+    dock: bottom;
+}
+
+Container {
+    height: 1fr;
+    layout: vertical;
+}
+
+#code-view {
+    height: 1fr;
+    border: solid $primary-darken-2;
+    background: $surface;
+    overflow-y: scroll;
+}
+
+#chat-log {
+    height: 1fr;
+    min-height: 10;
+    border: round $primary;
+    background: $surface;
+    margin: 1 1;
+}
+
+#agent-logs {
+    height: 10;
+    border: round $secondary;
+    background: $surface;
+    margin: 0 1;
+    display: none;
+}
+
+#agent-logs.visible {
+    display: block;
+}
+
+#code {
+    width: 100%;
+    padding: 1 2;
+    display: none;
+}
+
+.-show-code #code {
+    display: block;
+}
+
+#user-input {
+    margin: 0 1 1 1;
+    border: inner $accent;
+}
+
+#user-input.needs-attention {
+    background: $warning 10%;
+}
+
+/* Styling for the DirectoryTree if uncommented in the future */
+#tree-view {
+    width: 30;
+    dock: left;
+    border-right: solid $primary;
+    display: none;
+}
+
+.-show-tree #tree-view {
+    display: block;
+}
+
+/* Ensure the scrollable area feels right */
+VerticalScroll {
+    scrollbar-gutter: stable;
+}
+
+Log {
+    padding: 0 1;
+}

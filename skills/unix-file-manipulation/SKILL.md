@@ -58,6 +58,23 @@ license: MIT
     print(formatted_code)
 
     ``` 
+## Effective Commands List
+
+This list provides a quick reference for common, high-efficiency commands used in this skill.
+
+*   **Searching for Files**: `ls -af <file_pattern> | grep <file_pattern_or_string>`
+    *   Example: `ls -af *.py | grep "task"` (Searches for all files, including hidden ones, matching the pattern and filters by the search string).
+*   **Reading File Content**: `cat <file_path>`
+    *   Example: `cat core/task/task.py` (Outputs the entire content of the file).
+*   **Writing/Appending Content Inline**: `echo "<content>" >> <file_path>`
+    *   Example: `echo "DEBUG=True" >> .env` (Appends the text to the end of the file).
+*   **Creating Directories**: `mkdir -p <directory_path>`
+*   **Removing Files**: `rm <file_path>`
+*   **Copying Files**: `cp <source> <destination>`
+*   **Moving/Renaming Files**: `mv <source> <destination>`
+*   **Finding Files by Name (Recursive)**: `find . -name "<pattern>"`
+*   **Searching Content in Files (Recursive)**: `grep -r "<pattern>" .`
+
 ## Core Workflows
 
 Each workflow must prioritize safety, error checking, and idempotency.

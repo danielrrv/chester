@@ -9,7 +9,7 @@ It delegates to the CLI module to handle command-line interaction and task execu
 import logging
 import os
 from dotenv import load_dotenv
-from core.cli import main
+from core.apps.cli import main
 
 load_dotenv()
 
